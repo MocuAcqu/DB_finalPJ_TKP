@@ -28,6 +28,7 @@ git commit -m "這裡放留言(ex: 登入功能完成)"
 # ex: git push -u origin feature/environment_setup
 git push -u origin <分支名字>
 ```
+接著在 github 會有 pull requests 的相關確認，可以做到這一步的時候敲我一下，或是要直接就 merge 上去也可以。
 
 # 啟動方式
 ```
