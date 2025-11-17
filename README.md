@@ -32,4 +32,27 @@ git push -u origin <分支名字>
 # 啟動方式
 ```
 .\venv\Scripts\activate
+python app.py
+```
+# 資料結構
+```
+├── app/
+│   ├── __init__.py         
+│   ├── static/             # 存放 CSS, JS, 圖片等靜態檔案
+│   │   └── css/
+│   │       └── style.css
+│   ├── templates/          # 存放 HTML 模板
+│   │   ├── layouts/
+│   │   │   └── base.html       # 基礎模板 
+│   │   ├── partials/      
+│   │   │   └── _header.html    # 導航欄
+│   │   └── index.html          # 主頁面
+│   ├── routes.py           # 存放所有路由 (URL 對應的處理函式)
+│   └── config.py           # 載入環境變數的設定檔
+│
+├── .env                    # (本地) 存放環境變數，不上傳 Git
+├── .env.example            # 環境變數範本檔(給大家知道要設定哪些環境變數)
+├── .gitignore
+├── app.py                  
+└── requirements.txt       
 ```
