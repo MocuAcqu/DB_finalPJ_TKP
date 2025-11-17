@@ -48,6 +48,8 @@ python app.py
 │   │   │   └── _header.html    # 導航欄
 │   │   └── index.html          # 主頁面
 │   ├── routes.py           # 存放所有路由 (URL 對應的處理函式)
+│   ├── models.py           
+│   ├── auth.py           
 │   └── config.py           # 載入環境變數的設定檔
 │
 ├── .env                    # (本地) 存放環境變數，不上傳 Git
