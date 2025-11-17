@@ -49,7 +49,10 @@ python app.py
 │   │   │   └── _header.html    # 導航欄
 │   │   ├── auth/
 │   │   │   ├── register.html      
-│   │   │   └── login.html      
+│   │   │   └── login.html
+│   │   ├── items/
+│   │   │   ├── edit.html       #持有物品編輯刪除
+│   │   │   └── upload.html     #持有物品上傳
 │   │   └── index.html          # 主頁面
 │   ├── routes.py           # 存放所有路由 (URL 對應的處理函式)
 │   ├── models.py           
