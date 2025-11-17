@@ -62,3 +62,5 @@ python app.py
 ├── app.py                  
 └── requirements.txt       
 ```
+# ERD
+<img scr="" width=500px>
