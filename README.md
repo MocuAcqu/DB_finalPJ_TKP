@@ -14,6 +14,10 @@ git pull origin main
 # ex: git checkout -b feature/environment_setup
 git checkout -b <新分支名字>
 ```
+```
+# 拉取了最新的程式碼後，只需執行以下命令即可安裝所有必要的套件
+pip install -r requirements.txt
+```
 
 ```
 # 若完成開發要 push
@@ -23,4 +27,9 @@ git commit -m "這裡放留言(ex: 登入功能完成)"
 ```
 # ex: git push -u origin feature/environment_setup
 git push -u origin <分支名字>
+```
+
+# 啟動方式
+```
+.\venv\Scripts\activate
 ```
