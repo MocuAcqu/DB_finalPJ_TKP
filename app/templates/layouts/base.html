@@ -1,0 +1,43 @@
+<!-- 這是頁面的骨架 -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物品交換平台</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    
+    {% include 'partials/_header.html' %}
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+     <script>
+        const alertElements = document.querySelectorAll('.alert');
+        if (alertElements.length > 0) {
+            alertElements.forEach(function(element) {
+                setTimeout(function() {
+                    element.style.transition = 'opacity 0.5s ease';
+                    element.style.opacity = '0';
+
+                    setTimeout(function() {
+                        element.remove();
+                    }, 500);
+
+                }, 3000);
+            });
+        }
+    </script>
+</body>
+</html>

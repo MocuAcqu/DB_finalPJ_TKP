@@ -1,0 +1,34 @@
+<!-- app/templates/partials/_header.html (更新後) -->
+<header class="main-header">
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <a href="/">物品交換平台</a>
+        </div>
+
+        <div class="header-actions">
+            <!-- 角色切換 -->
+            <div class="role-switcher">
+                <a href="{{ url_for('main.index', role='user', tab='exchange') }}" class="role-btn {% if role == 'user' %}active{% endif %}">
+                用戶
+                </a>
+                <a href="{{ url_for('main.index', role='seller', tab='items') }}" class="role-btn {% if role == 'seller' %}active{% endif %}">
+                賣家
+                </a>
+            </div>
+
+            <div class="separator"></div>
+
+            <!-- 登入操作 -->
+            <div class="auth-actions">
+                {% if current_user.is_authenticated %}
+                    <!-- 如果使用者已登入 -->
+                    <span class="welcome-message">歡迎, {{ current_user.username }}</span>
+                    <a href="{{ url_for('auth.logout') }}" class="auth-btn logout-btn">登出</a>
+                {% else %}
+                    <!-- 如果使用者未登入 -->
+                    <a href="{{ url_for('auth.login') }}" class="auth-btn login-btn">登入</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+</header>

@@ -1,0 +1,61 @@
+<!-- 這是主頁面 -->
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="content-area">
+    <div class="tab-bar-container">
+        <div class="tab-bar">
+            {% if role == 'user' %}
+                <a href="{{ url_for('main.index', role='user', tab='exchange') }}" class="tab-item {% if active_tab == 'exchange' %}active{% endif %}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                    交換
+                </a>
+                <a href="{{ url_for('main.index', role='user', tab='buy_sell') }}" class="tab-item {% if active_tab == 'buy_sell' %}active{% endif %}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                    買賣
+                </a>
+                <a href="{{ url_for('main.index', role='user', tab='rent') }}" class="tab-item {% if active_tab == 'rent' %}active{% endif %}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    租借
+                </a>
+                <a href="{{ url_for('main.index', role='user', tab='profile') }}" class="tab-item {% if active_tab == 'profile' %}active{% endif %}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    個人資料
+                </a>
+            {% elif role == 'seller' %}
+                <a href="{{ url_for('main.index', role='seller', tab='items') }}" class="tab-item {% if active_tab == 'items' %}active{% endif %}">我的物品</a>
+                <a href="{{ url_for('main.index', role='seller', tab='responses') }}" class="tab-item {% if active_tab == 'responses' %}active{% endif %}">管理回應</a>
+                <a href="{{ url_for('main.index', role='seller', tab='profile') }}" class="tab-item {% if active_tab == 'profile' %}active{% endif %}">個人資料</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- 特定分頁才顯示搜尋區塊 -->
+    {% if active_tab in ['exchange', 'buy_sell', 'rent', 'items'] %}
+        {% include 'partials/_search_block.html' %}
+    {% endif %}
+
+    <!-- 這裡預計用來放每個分頁的主要內容 -->
+    <div class="page-content">
+    {% if role == 'user' %}
+        {% if active_tab == 'exchange' %}
+            <h1>這裡是【交換】的物品列表...</h1>
+        {% elif active_tab == 'buy_sell' %}
+            <h1>這裡是【買賣】的物品列表...</h1>
+        {% elif active_tab == 'rent' %}
+            <h1>這裡是【租借】的物品列表...</h1>
+        {% elif active_tab == 'profile' %}
+            <h1>這是用戶的【個人資料】</h1>
+        {% endif %}
+    {% elif role == 'seller' %}
+        {% if active_tab == 'items' %}
+            <h1>這裡是賣家的【我的物品】列表...</h1>
+        {% elif active_tab == 'responses' %}
+            <h1>這裡是賣家的【管理回應】內容...</h1>
+        {% elif active_tab == 'profile' %}
+            <h1>這是賣家的【個人資料】</h1>
+        {% endif %}
+    {% endif %}
+    </div>
+</div>
+{% endblock %}
