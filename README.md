@@ -41,18 +41,34 @@ python app.py
 │   ├── __init__.py         
 │   ├── static/             # 存放 CSS, JS, 圖片等靜態檔案
 │   │   └── css/
-│   │       └── style.css
+│   │   │   └── style.css
+│   │   ├── js/
+│   │   │   └── base.js  
 │   ├── templates/          # 存放 HTML 模板
 │   │   ├── layouts/
 │   │   │   └── base.html       # 基礎模板 
 │   │   ├── partials/      
-│   │   │   └── _header.html    # 導航欄
+│   │   │   ├── _header.html       # 頁面 Header
+│   │   │   └── _search_block.html # 搜尋欄位
+│   │   │
 │   │   ├── auth/
 │   │   │   ├── register.html      
 │   │   │   └── login.html
+│   │   │
 │   │   ├── items/
 │   │   │   ├── edit.html       #持有物品編輯刪除
 │   │   │   └── upload.html     #持有物品上傳
+│   │   ├── seller/            # 賣家
+│   │   │   ├── tab_items.html         # 賣家的「我的物品」
+│   │   │   ├── tab_profile.html       # 賣家個人資料
+│   │   │   └── tab_responses.html     # 賣家管理回應（買賣/租借/交換）
+│   │   │
+│   │   ├── user/              # 用戶
+│   │   │   ├── tab_buy_sell.html      # 買賣列表
+│   │   │   ├── tab_exchange.html      # 交換列表
+│   │   │   ├── tab_rent.html          # 租借列表
+│   │   │   └── tab_profile.html       # 使用者的個人資料頁
+│   │   │
 │   │   └── index.html          # 主頁面
 │   ├── routes.py           # 存放所有路由 (URL 對應的處理函式)
 │   ├── models.py           
