@@ -1,0 +1,113 @@
+{% if current_user.is_authenticated %}
+    <div class="contact-methods" style="margin-top: 10px;"></div>
+{% else %}
+    <div class="login-alert">
+        <a href="{{ url_for('auth.login') }}">登入</a> 後可對商品提出"有興趣"
+    </div>
+{% endif %}
+<div class="items-grid"
+     style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px;">
+    {% if items %}
+        {% for item in items %}
+            {% set seller = seller_map.get(item.seller_id) %}
+
+            <div class="item-card">
+                <div class="item-image">
+                    <img src="{{ url_for('main.get_image', image_id=item.image_id) }}"
+                         alt="{{ item.name }}">
+                </div>
+
+                <div class="item-details" style="padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <h3 style="margin: 0; font-size: 1.1em; color: #333;">{{ item.name }}</h3>
+
+                    </div>
+
+                    <div class="tags" style="margin-bottom: 10px;">
+                        {% for tag in item.tags %}
+                            <span style="background: #f0f0f0; color: #666; padding: 2px 6px;
+                                         border-radius: 4px; font-size: 0.8em;">
+                                #{{ tag }}
+                            </span>
+                        {% endfor %}
+                    </div>
+
+                    <p class ="description">
+                        {{ item.description }}
+                    </p>
+                    <span style="font-size: 1.4rem; color: #1913b5; font-weight: bold;">
+                        NT$ {{ item.price }}/次
+                    </span>
+
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
+
+                    <div class="seller-info" style="font-size: 0.9em;">
+                        <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                            <span style="font-weight: bold; margin-right: 5px;">
+                                出借者: {{ seller.username if seller else '未知' }}
+                            </span>
+                        </div>
+
+                    </div>
+                    <div style="padding: 0 15px 15px 15px;">
+                        <button
+                            type="button"
+                            class="interest-btn"
+                            onmouseover="this.style.borderColor='#bbb'; this.style.background='#fafafa'"
+                            onmouseout="this.style.borderColor='#ddd'; this.style.background='#fff'"
+                            
+                            data-item-id="{{ item.id }}"          
+                            data-owner-id="{{ item.seller_id }}"
+                            data-transaction-type="{{ item.transaction_type }}"
+                            data-item-name="{{ item.name }}"
+                            data-seller-name="{{ seller.username if seller else '未知' }}"
+                            data-seller-email="{{ seller.email if seller else '（未提供 Email）' }}"
+                        >
+                            <span style="font-size: 1.1rem;">♡</span> 有興趣
+                        </button>
+                    </div> 
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #888;">
+            <p>目前沒有相關物品，晚點再來看看吧！</p>
+        </div>
+    {% endif %}
+</div>
+<!-- 表達興趣的彈窗 -->
+<div id="interest-modal"
+     style="
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.4);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+     ">
+    <div style="
+        background: #fff;
+        border-radius: 16px;
+        padding: 24px 32px;
+        width: 480px;
+        max-width: 90%;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+    ">
+        <h2 style="margin-top: 0; font-size: 1.1rem; margin-bottom: 16px;">
+            已表達興趣！
+        </h2>
+        <p style="margin: 0 0 4px;">出借者：<span id="modal-seller-name"></span></p>
+        <p style="margin: 0 0 16px;">聯絡方式：<span id="modal-seller-email"></span></p>
+        <p style="margin: 0 0 20px; font-size: 0.9rem; color: #666;">
+            這筆紀錄也已經寫入賣家的「管理回應專區」，賣家可以在後台看到你的興趣通知。
+        </p>
+
+        <div style="text-align: right;">
+            <button id="interest-modal-close">
+                確定
+            </button>
+        </div>
+    </div>
+</div>
+

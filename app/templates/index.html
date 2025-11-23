@@ -2,6 +2,7 @@
 
 {% block content %}
 <div class="content-area">
+    <!-- tab bar -->
     <div class="tab-bar-container">
         <div class="tab-bar">
             {% if role == 'user' %}
@@ -36,180 +37,24 @@
     {% endif %}
 
     <div class="page-content">
-    {% if role == 'user' %}
-        
-        {% if active_tab in ['exchange', 'buy_sell', 'rent'] %}
-            
-            <div class="items-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px;">
-                {% if items %}
-                    {% for item in items %}
-                        {% set seller = seller_map.get(item.seller_id) %}
-                        
-                        <div class="item-card" style="border: 1px solid #eee; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: transform 0.2s;">
-                            
-                            <div class="item-image" style="height: 200px; overflow: hidden; background: #f8f9fa;">
-                                <img src="{{ url_for('main.get_image', image_id=item.image_id) }}" alt="{{ item.name }}" style="width: 100%; height: 100%; object-fit: cover;">
-                            </div>
-                            
-                            <div class="item-details" style="padding: 15px;">
-                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
-                                    <h3 style="margin: 0; font-size: 1.1em; color: #333;">{{ item.name }}</h3>
-                                    {% if item.transaction_type == 'sell' %}
-                                        <span style="color: #d32f2f; font-weight: bold;">${{ item.price }}</span>
-                                    {% elif item.transaction_type == 'rent' %}
-                                        <span style="color: #d32f2f; font-weight: bold;">${{ item.price }}/次</span>
-                                    {% endif %}
-                                </div>
-
-                                <div class="tags" style="margin-bottom: 10px;">
-                                    {% for tag in item.tags %}
-                                        <span style="background: #f0f0f0; color: #666; padding: 2px 6px; border-radius: 4px; font-size: 0.8em;">#{{ tag }}</span>
-                                    {% endfor %}
-                                </div>
-
-                                <p style="color: #666; font-size: 0.9em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 15px;">
-                                    {% if item.transaction_type == 'exchange' %}
-                                        <strong style="color: #4a148c;">想換：{{ item.exchange_want }}</strong><br>
-                                    {% endif %}
-                                    {{ item.description }}
-                                </p>
-
-                                <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
-
-                                <div class="seller-info" style="font-size: 0.9em;">
-                                    <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                                        <span style="font-weight: bold; margin-right: 5px;">賣家: {{ seller.username if seller else '未知' }}</span>
-                                    </div>
-                                    
-                                    {% if current_user.is_authenticated %}
-                                        <div class="contact-methods" style="margin-top: 10px;">
-                                            {% if seller.line_id %}
-                                                <div style="margin-bottom: 3px;">Line: <span style="color: #00b900;">{{ seller.line_id }}</span></div>
-                                            {% endif %}
-                                            {% if seller.phone %}
-                                                <div style="margin-bottom: 3px;">電話: <span>{{ seller.phone }}</span></div>
-                                            {% endif %}
-                                            {% if seller.facebook %}
-                                                <div>FB: <a href="{{ seller.facebook }}" target="_blank" style="color: #1877f2;">連結</a></div>
-                                            {% endif %}
-                                            
-                                            {% if not seller.line_id and not seller.phone and not seller.facebook %}
-                                                <span style="color: #999;">(賣家未提供聯絡方式)</span>
-                                            {% endif %}
-                                        </div>
-                                    {% else %}
-                                        <div style="background: #fff3cd; padding: 8px; border-radius: 4px; font-size: 0.85em; color: #856404; text-align: center;">
-                                            <a href="{{ url_for('auth.login') }}">登入</a> 後查看聯絡方式
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #888;">
-                        <p>目前沒有相關物品，晚點再來看看吧！</p>
-                    </div>
-                {% endif %}
-            </div>
-
+    {% if role == 'user' %} 
+        {% if active_tab == 'exchange' %}
+            {% include 'user/tab_exchange.html' %}
+        {% elif active_tab == 'buy_sell' %}
+            {% include 'user/tab_buy_sell.html' %}
+        {% elif active_tab == 'rent' %}
+            {% include 'user/tab_rent.html' %}
         {% elif active_tab == 'profile' %}
-            <div class="profile-card" style="max-width: 600px; margin: 2rem auto; padding: 2rem; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                <div class="profile-info">
-                    <h2>用戶基本資料</h2>
-                    <p><strong>使用者名稱：</strong> {{ current_user.username }}</p>
-                    <p><strong>Email：</strong> {{ current_user.email }}</p>
-                </div>
-                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-                <form action="{{ url_for('main.update_profile', role='user') }}" method="POST" class="profile-form">
-                     <div class="form-group" style="margin-bottom: 15px;">
-                        <label for="line_id" style="display: block; font-weight: bold;">Line ID</label>
-                        <input type="text" id="line_id" name="line_id" value="{{ current_user.line_id }}" placeholder="輸入 Line ID" style="width: 100%; padding: 8px;">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label for="phone" style="display: block; font-weight: bold;">聯絡電話</label>
-                        <input type="tel" id="phone" name="phone" value="{{ current_user.phone }}" placeholder="輸入電話號碼" style="width: 100%; padding: 8px;">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label for="facebook" style="display: block; font-weight: bold;">Facebook</label>
-                        <input type="text" id="facebook" name="facebook" value="{{ current_user.facebook }}" placeholder="輸入 FB 連結或帳號" style="width: 100%; padding: 8px;">
-                    </div>
-                    <button type="submit" class="btn-save" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">儲存變更</button>
-                </form>
-            </div>
-
+            {% include 'user/tab_profile.html' %}
         {% endif %}
 
     {% elif role == 'seller' %}
-        
         {% if active_tab == 'items' %}
-             <div class="seller-items-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h1>我的物品清單</h1>
-                <a href="{{ url_for('main.upload_item') }}" class="btn-upload" style="background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                    + 上架新商品
-                </a>
-            </div>
-            
-            <div class="items-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
-                {% if items %}
-                    {% for item in items %}
-                        <div class="item-card" style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column;">
-                            <div class="item-image" style="height: 200px; overflow: hidden; background: #f8f9fa;">
-                                <img src="{{ url_for('main.get_image', image_id=item.image_id) }}" alt="{{ item.name }}" style="width: 100%; height: 100%; object-fit: cover;">
-                            </div>
-                            <div class="item-details" style="padding: 15px; flex-grow: 1;">
-                                <h3 style="margin: 0 0 10px 0;">{{ item.name }}</h3>
-                                <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">{{ item.description }}</p>
-                            </div>
-                            
-                            <div class="item-actions" style="padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px;">
-                                <a href="{{ url_for('main.edit_item', item_id=item.id) }}" 
-                                   style="flex: 1; text-align: center; background-color: #2196F3; color: white; text-decoration: none; padding: 8px; border-radius: 4px;">
-                                   編輯
-                                </a>
-                                
-                                <form action="{{ url_for('main.delete_item', item_id=item.id) }}" method="POST" 
-                                      style="flex: 1;" onsubmit="return confirm('確定要刪除這個物品嗎？此動作無法復原。');">
-                                    <button type="submit" 
-                                            style="width: 100%; background-color: #f44336; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 1rem;">
-                                        刪除
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p style="grid-column: 1/-1;">目前沒有上架的物品，快去新增吧！</p>
-                {% endif %}
-            </div>
-
+            {% include 'seller/tab_items.html' %}
         {% elif active_tab == 'responses' %}
-             <h1>這裡是賣家的【管理回應】內容...</h1>
-        
+            {% include 'seller/tab_responses.html' %}
         {% elif active_tab == 'profile' %}
-             <div class="profile-card" style="max-width: 600px; margin: 2rem auto; padding: 2rem; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                 <div class="profile-info">
-                    <h2>賣家基本資料</h2>
-                    <p><strong>使用者名稱：</strong> {{ current_user.username }}</p>
-                    <p><strong>Email：</strong> {{ current_user.email }}</p>
-                </div>
-                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-                 <form action="{{ url_for('main.update_profile', role='seller') }}" method="POST" class="profile-form">
-                     <div class="form-group" style="margin-bottom: 15px;">
-                        <label for="line_id" style="display: block; font-weight: bold;">Line ID</label>
-                        <input type="text" id="line_id" name="line_id" value="{{ current_user.line_id }}" style="width: 100%; padding: 8px;">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label for="phone" style="display: block; font-weight: bold;">聯絡電話</label>
-                        <input type="tel" id="phone" name="phone" value="{{ current_user.phone }}" style="width: 100%; padding: 8px;">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label for="facebook" style="display: block; font-weight: bold;">Facebook</label>
-                        <input type="text" id="facebook" name="facebook" value="{{ current_user.facebook }}" style="width: 100%; padding: 8px;">
-                    </div>
-                    <button type="submit" class="btn-save" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%;">儲存變更</button>
-                 </form>
-             </div>
+            {% include 'seller/tab_profile.html' %}
         {% endif %}
     {% endif %}
     </div>
