@@ -24,7 +24,7 @@ def create_app():
 
     # --- 資料庫連線設定 ---
     client = MongoClient(app.config['MONGO_URI'])
-    app.db = client.get_default_database() # 將 db 物件附加到 app 上
+    app.db = client["tkp_db"]  # 將 db 物件附加到 app 上
     
     # 初始化 Flask-Login
     login_manager.init_app(app)
