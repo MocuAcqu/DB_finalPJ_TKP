@@ -1,0 +1,114 @@
+{% if current_user.is_authenticated %}
+    <div class="contact-methods" style="margin-top: 10px;"></div>
+{% else %}
+    <div class="login-alert">
+        <a href="{{ url_for('auth.login') }}">登入</a> 後可查看詳情
+    </div>
+{% endif %}
+<div class="items-grid"
+     style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px;">
+    {% if items %}
+        {% for item in items %}
+            {% set seller = seller_map.get(item.seller_id) %}
+
+
+
+
+            <div class="item-card">
+                <div class="item-image">
+                    <img src="{{ url_for('main.get_image', image_id=item.image_id) }}"
+                         alt="{{ item.name }}">
+                </div>
+
+                <div class="item-details" style="padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <h3 style="margin: 0; font-size: 1.1em; color: #333;">{{ item.name }}</h3>
+                    </div>
+
+                    <div class="tags" style="margin-bottom: 10px;">
+                        {% for tag in item.tags %}
+                            <span style="background: #f0f0f0; color: #666; padding: 2px 6px;
+                                         border-radius: 4px; font-size: 0.8em;">
+                                #{{ tag }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                    <p class="description">
+                        {{ item.description }}
+                    </p>
+
+                    <strong style="color: #1913b5; display:block; margin-bottom: 15px;">
+                        想換：{{ item.exchange_want }}
+                    </strong>
+
+
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
+
+                    <div class="seller-info" style="font-size: 0.9em;">
+                        <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                            <span style="font-weight: bold; margin-right: 5px;">
+                                提供者: {{ seller.username if seller else '未知' }}
+                            </span>
+                        </div>
+                        <div class="item-actions">
+                            <button 
+                                type="button"
+                                class="view-detail-btn"
+                                data-item-id="{{ item.id }}">
+                                <span class="icon">💬</span> 查看詳情
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #888;">
+            <p>目前沒有相關物品，晚點再來看看吧！</p>
+        </div>
+    {% endif %}
+</div>
+<div id="detail-modal" class="detail-modal">
+    <div class="modal-content">
+        <button class="modal-close" id="detail-modal-close">✕</button>
+         <!--  A. 商品資訊 -->
+        <h2 id="detail-title"></h2>
+
+        <div id="detail-tags" class="tags"></div>
+
+        <p>提供者：<span id="detail-seller"></span></p>
+
+        <img id="detail-image" class="detail-image">
+
+        <h4>物品描述</h4>
+        <p id="detail-description"></p>
+        <!-- B. 公開留言區 -->
+        <div id="detail-extra"></div>
+        <div class="comment-section">
+            <h3 class="comment-title">💬 留言</h3>
+            <div id="exchange-message-list" class="comment-list"></div>
+
+            <div class="comment-input">
+                <textarea id="exchange-message-text" placeholder="輸入留言..."></textarea>
+                <button id="exchange-message-submit">送出</button>
+            </div>
+        </div>
+        <!-- C. 提出交換請求 -->
+        <div class="exchange-section">
+            <h3 class="exchange-title"> 交換請求</h3>
+            <p class="exchange-hint">從「我的物品」中選一件提出交換：</p>
+
+            <!-- 這裡會由 JS 填入使用者自己的物品 -->
+            <div id="exchange-item-list" class="exchange-item-list"></div>
+
+            <button id="exchange-submit-btn" class="exchange-submit-btn" disabled>
+                送出交換請求
+            </button>
+        </div>
+    </div>
+
+
+
+</div>
+

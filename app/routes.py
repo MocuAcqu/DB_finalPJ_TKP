@@ -1,9 +1,14 @@
+# 可以拿掉array messages=[]
 import gridfs
 from bson.objectid import ObjectId
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, make_response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, make_response, jsonify
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from .models import Item, User 
+from datetime import datetime, timezone, timedelta
+from uuid import uuid4
+
+
 
 bp = Blueprint('main', __name__)
 
@@ -27,6 +32,8 @@ def index():
     # --- 資料撈取邏輯 ---
     items_to_show = []     # 存放要顯示的商品列表
     seller_map = {}        # 存放 {seller_id: User物件} 的對照表
+    interests = []         # 存放賣家「管理回應」列表
+    exchange_requests = []
 
     db = current_app.db
 
@@ -54,6 +61,87 @@ def index():
                     seller_map[sid] = User(user_data)
 
     current_tab_info = tab_info.get(active_tab, {})
+    # 情況 C: 賣家查看「管理回應」tab（表達興趣列表）
+    if role == 'seller' and active_tab == 'responses' and current_user.is_authenticated:
+        owner_oid = ObjectId(current_user.id)
+
+        # ===== A. 既有：買賣 / 租借 表達興趣 =====
+        txs = list(db.transactions.find(
+            {"owner_id": owner_oid}
+        ).sort("created_at", -1))
+
+        if txs:
+            item_ids = [tx["item_id"] for tx in txs if "item_id" in tx]
+            buyer_ids = [tx["interested_user_id"] for tx in txs if "interested_user_id" in tx]
+
+            items_map = {
+                doc["_id"]: doc
+                for doc in db.items.find({"_id": {"$in": item_ids}})
+            }
+            buyers_map = {
+                doc["_id"]: doc
+                for doc in db.users.find({"_id": {"$in": buyer_ids}})
+            }
+
+            for tx in txs:
+                item_doc = items_map.get(tx["item_id"])
+                buyer_doc = buyers_map.get(tx["interested_user_id"])
+
+                interests.append({
+                    "id": str(tx["_id"]), 
+                    "item": item_doc,
+                    "buyer": buyer_doc,
+                    "type": tx.get("type") or tx.get("transaction_type"),
+                    "status": tx.get("status", "pending"),
+                    "created_at": tx.get("created_at"),
+                })
+
+        # ===== B. 新增：交換請求列表 (來自 exchanges) =====
+        ex_docs = list(db.exchanges.find(
+            {"target_item_owner_id": current_user.id}
+        ).sort("created_at", -1))
+
+        if ex_docs:
+            # 目標物品 & 對方提出的物品
+            target_ids = [ex["target_item_id"] for ex in ex_docs]
+            proposed_ids = []
+            for ex in ex_docs:
+                proposed_ids.extend(ex.get("proposed_item_ids", []))
+
+            all_item_ids = list({*target_ids, *proposed_ids})
+
+            items_map2 = {
+                doc["_id"]: doc
+                for doc in db.items.find({"_id": {"$in": all_item_ids}})
+            }
+
+            # 提出者
+            proposer_ids = list({ex["proposer_id"] for ex in ex_docs})
+            users_map2 = {
+                doc["_id"]: doc
+                for doc in db.users.find({
+                    "_id": {"$in": [ObjectId(uid) for uid in proposer_ids]}
+                })
+            }
+
+            for ex in ex_docs:
+                target_item = items_map2.get(ex["target_item_id"])
+                offered_items = [
+                    items_map2.get(oid)
+                    for oid in ex.get("proposed_item_ids", [])
+                ]
+                proposer = users_map2.get(ObjectId(ex["proposer_id"]))
+
+                exchange_requests.append({
+                    "id": str(ex["_id"]),
+                    "target_item": target_item,
+                    "target_item_id": str(target_item["_id"]) if target_item else None,
+                    "offered_items": offered_items,
+                    "proposer": proposer,
+                    "status": ex.get("status", "pending"),
+                    "created_at": ex.get("created_at"),
+                })
+    current_tab_info = tab_info.get(active_tab, {})
     
     # 統一使用 items 變數傳遞
     return render_template('index.html', 
@@ -62,7 +150,10 @@ def index():
                            title=current_tab_info.get('title'), 
                            description=current_tab_info.get('description'),
                            items=items_to_show,  
-                           seller_map=seller_map)
+                           seller_map=seller_map,
+                           interests=interests,
+                           exchange_requests=exchange_requests,)
+
 # [新增] 處理個人資料更新的路由
 @bp.route('/profile/update', methods=['POST'])
 @login_required
@@ -237,3 +328,252 @@ def delete_item(item_id):
         flash('物品已刪除。', 'success')
         
     return redirect(url_for('main.index', role='seller', tab='items'))
+
+# ---------------------------------------------------
+# 使用者表達興趣（建立交易紀錄）
+# ---------------------------------------------------
+@bp.route("/express_interest", methods=["POST"])
+@login_required
+def express_interest():
+    data = request.get_json() or {}
+
+    item_id = data.get("item_id")
+    owner_id = data.get("owner_id")
+    tx_type = data.get("transaction_type")
+    item_name = data.get("item_name")
+
+    if not item_id or not owner_id or not tx_type:
+        return {"ok": False, "error": "缺少必要欄位"}, 400
+
+    try:
+        item_oid = ObjectId(item_id)
+        owner_oid = ObjectId(owner_id)
+        buyer_oid = ObjectId(current_user.id)
+    except:
+        return {"ok": False, "error": "ID 格式錯誤"}, 400
+
+    if buyer_oid == owner_oid:
+        return {"ok": False, "error": "不能對自己的物品表達興趣"}, 400
+
+    db = current_app.db
+
+    tx_doc = {
+        "item_id": item_oid,
+        "owner_id": owner_oid,
+        "interested_user_id": buyer_oid,
+        "transaction_type": tx_type, 
+        "item_name": item_name,
+        "status": "pending",
+        "created_at": datetime.utcnow() + timedelta(hours=8)
+    }
+
+    db.transactions.insert_one(tx_doc)
+
+    return {"ok": True}
+
+@bp.route("/item/detail/<item_id>")
+def item_detail(item_id):
+    db = current_app.db
+    item = Item.get_by_id(item_id, db)
+
+    if not item:
+        return {"error": "Item not found"}, 404
+
+    seller = db.users.find_one({"_id": ObjectId(item.seller_id)})
+    seller_name = seller.get("username") if seller else "未知"
+
+    return {
+        "name": item.name,
+        "description": item.description,
+        "seller": seller_name,
+        "tags": item.tags,
+        "image_id": str(item.image_id),
+        "transaction_type": item.transaction_type,
+        "price": item.price,
+        "exchange_want": item.exchange_want,
+    }
+
+
+
+@bp.route("/exchange/<exchange_id>/messages")
+def get_exchange_messages(exchange_id):
+    db = current_app.db
+    exchange = db.exchanges.find_one({"_id": ObjectId(exchange_id)})
+    if not exchange:
+        return jsonify({"ok": False, "error": "exchange not found"}), 404
+    
+    return jsonify({"ok": True, "messages": exchange.get("messages", [])})
+
+@bp.route("/exchange/<exchange_id>/add_message", methods=["POST"])
+@login_required
+def add_exchange_message(exchange_id):
+    db = current_app.db
+    data = request.get_json()
+    text = data.get("text", "").strip()
+
+    if not text:
+        return jsonify({"ok": False, "error": "empty message"}), 400
+
+    message = {
+        "message_id": str(uuid4()),
+        "user_id": current_user.id,
+        "username": current_user.username,
+        "text": text,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+    db.exchanges.update_one(
+        {"_id": ObjectId(exchange_id)},
+        {"$push": {"messages": message}}
+    )
+
+    return jsonify({"ok": True, "message": message})
+
+@bp.route("/user/my_items")
+@login_required
+def my_items():
+    db = current_app.db
+    docs = list(db.items.find({"seller_id": current_user.id}))
+    return jsonify({
+        "ok": True,
+        "items": [
+            {
+                "_id": str(x["_id"]),
+                "name": x["name"],
+                "image_id": str(x["image_id"])
+            }
+            for x in docs
+        ]
+    })
+@bp.route("/exchange/create", methods=["POST"])
+@login_required
+def create_exchange():
+    db = current_app.db
+    data = request.get_json() or {}
+
+    target_item_id = data.get("target_item_id")
+    proposed_item_ids = data.get("proposed_item_ids", [])  # 多選
+
+    if not target_item_id or not proposed_item_ids:
+        return jsonify({"ok": False, "error": "missing fields"}), 400
+
+    try:
+        target_oid = ObjectId(target_item_id)
+        proposed_oids = [ObjectId(x) for x in proposed_item_ids]
+    except:
+        return jsonify({"ok": False, "error": "ID 格式錯誤"}), 400
+
+    target_item = db.items.find_one({"_id": target_oid})
+    if not target_item:
+        return jsonify({"ok": False, "error": "target item not found"}), 404
+
+    # 確認這些 proposed items 都是目前登入者的
+    owner_id_str = str(current_user.id)
+    count = db.items.count_documents({
+        "_id": {"$in": proposed_oids},
+        "seller_id": owner_id_str
+    })
+    if count != len(proposed_oids):
+        return jsonify({"ok": False, "error": "有物品不是你的，不能用來交換"}), 400
+
+    # 排序後存起來，避免組合順序不同算成不同
+    proposed_oids_sorted = sorted(proposed_oids, key=lambda x: str(x))
+
+    existing = db.exchanges.find_one({
+        "target_item_id": target_oid,
+        "proposer_id": owner_id_str,
+        "proposed_item_ids": proposed_oids_sorted,
+    })
+    if existing:
+        return jsonify({"ok": False, "error": "你已經用這組物品提出過交換"}), 400
+
+    exchange_doc = {
+        "target_item_id": target_oid,
+        "target_item_owner_id": str(target_item["seller_id"]),
+        "proposer_id": owner_id_str,
+        "proposed_item_ids": proposed_oids_sorted,  # 改成 list
+        "status": "pending",
+        "created_at": datetime.utcnow() + timedelta(hours=8),
+    }
+    result = db.exchanges.insert_one(exchange_doc)
+    exchange_id = str(result.inserted_id)
+
+    return jsonify({"ok": True, "exchange_id": exchange_id})
+# 取得某個商品的留言（公開）
+@bp.route("/item/<item_id>/comments")
+def get_item_comments(item_id):
+    db = current_app.db
+    try:
+        item_oid = ObjectId(item_id)
+    except:
+        return jsonify({"ok": False, "error": "invalid item id"}), 400
+
+    docs = list(db.item_comments.find(
+        {"item_id": item_oid}
+    ).sort("created_at", 1))
+
+    return jsonify({
+        "ok": True,
+        "comments": [
+            {
+                "username": c.get("username", "未知"),
+                "text": c.get("text", ""),
+                "timestamp": c.get("timestamp")  # ISO string
+            }
+            for c in docs
+        ]
+    })
+
+
+# 新增留言（需要登入）
+@bp.route("/item/<item_id>/comments", methods=["POST"])
+@login_required
+def add_item_comment(item_id):
+    db = current_app.db
+    data = request.get_json() or {}
+    text = data.get("text", "").strip()
+
+    if not text:
+        return jsonify({"ok": False, "error": "empty message"}), 400
+
+    try:
+        item_oid = ObjectId(item_id)
+    except:
+        return jsonify({"ok": False, "error": "invalid item id"}), 400
+
+    comment = {
+        "item_id": item_oid,
+        "user_id": current_user.id,
+        "username": current_user.username,
+        "text": text,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+    db.item_comments.insert_one(comment)
+
+    return jsonify({"ok": True, "comment": {
+        "username": comment["username"],
+        "text": comment["text"],
+        "timestamp": comment["timestamp"]
+    }})
+
+@bp.route("/update_interest_status", methods=["POST"])
+@login_required
+def update_interest_status():
+    data = request.get_json() or {}
+    interest_id = data.get("interest_id")
+    status = data.get("status")
+
+    if not interest_id or not status:
+        return jsonify({"ok": False, "error": "Missing fields"}), 400
+
+    db = current_app.db
+
+    try:
+        db.transactions.update_one(
+            {"_id": ObjectId(interest_id)},
+            {"$set": {"status": status}}
+        )
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
