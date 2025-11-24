@@ -13,8 +13,6 @@ login_manager.login_view = 'auth.login'
 @login_manager.user_loader
 def load_user(user_id):
     # 這裡我們需要能夠存取 db 連線
-    # 我們將在 create_app 中處理這個問題
-    # 暫時用 User.get(user_id, ???)
     # 正確的做法是在 create_app 中將 db 附加到 app 上
     from flask import current_app
     return User.get(user_id, current_app.db)
