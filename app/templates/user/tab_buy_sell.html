@@ -14,7 +14,8 @@
             <div class="item-card">
                 <div class="item-image">
                     <img src="{{ url_for('main.get_image', image_id=item.image_id) }}"
-                         alt="{{ item.name }}">
+                         alt="{{ item.name }}"
+                         class="zoomable-image">
                 </div>
 
                 <div class="item-details" style="padding: 15px;">
@@ -50,24 +51,23 @@
                             </span>
                         </div>
                     </div>
-                    <div style="padding: 0 15px 15px 15px;">
-                        <button
-                            type="button"
-                            class="interest-btn"
-                            onmouseover="this.style.borderColor='#bbb'; this.style.background='#fafafa'"
-                            onmouseout="this.style.borderColor='#ddd'; this.style.background='#fff'"
-                            
-                            data-item-id="{{ item.id }}"          
-                            data-owner-id="{{ item.seller_id }}"
-                            data-transaction-type="{{ item.transaction_type }}"
-                            data-item-name="{{ item.name }}"
-                            data-seller-name="{{ seller.username if seller else '未知' }}"
-                            data-seller-email="{{ seller.email if seller else '（未提供 Email）' }}"
-                        >
-                            <span style="font-size: 1.1rem;">♡</span> 有興趣
-                        </button>
+                    
+                </div>
 
-                    </div>
+                <div class="item-actions">
+                    <button
+                        type="button"
+                        class="interest-btn"
+                            
+                        data-item-id="{{ item.id }}"          
+                        data-owner-id="{{ item.seller_id }}"
+                        data-transaction-type="{{ item.transaction_type }}"
+                        data-item-name="{{ item.name }}"
+                        data-seller-name="{{ seller.username if seller else '未知' }}"
+                        data-seller-email="{{ seller.email if seller else '（未提供 Email）' }}"
+                    >
+                        <span style="font-size: 1.1rem;">♡</span> 有興趣
+                    </button>
                 </div>
             </div>
         {% endfor %}
