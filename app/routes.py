@@ -5,18 +5,44 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from .models import Item, User 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from uuid import uuid4
-
-
 
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
+    search_query = request.args.get('q', '').strip()
+    sort_order = request.args.get('sort', 'desc') 
+    
+    # 1 為 ascending, -1 為 descending 
+    sort_direction = 1 if sort_order == 'asc' else -1
+    sort_logic = [("created_at", sort_direction)] # 預設按創建時間排序
+
+    db = current_app.db
+    filter_query = {} # 動態建立的 MongoDB 查詢條件
+
+    if search_query:
+        # 使用正規表達式進行不分大小寫的模糊比對
+        regex_query = {"$regex": search_query, "$options": "i"}
+
+        # 找出符合名稱的提供者/賣家 ID
+        matching_sellers = db.users.find({"username": regex_query}, {"_id": 1})
+        matching_seller_ids = [str(user["_id"]) for user in matching_sellers]
+
+        # 查詢條件：名稱 OR 標籤 OR 提供者名稱
+        query_conditions = [
+            {"name": regex_query},
+            {"tags": regex_query} 
+        ]
+        
+        if matching_seller_ids:
+            query_conditions.append({"seller_id": {"$in": matching_seller_ids}})
+        
+        filter_query["$or"] = query_conditions
+
     # 根據 URL 參數決定當前角色 (預設為 'user')
     role = request.args.get('role', 'user') 
-    
     default_tab = 'items' if role == 'seller' else 'exchange'
     active_tab = request.args.get('tab', default_tab)
 
@@ -39,7 +65,11 @@ def index():
 
     # 情況 A: 賣家看自己的物品
     if role == 'seller' and active_tab == 'items' and current_user.is_authenticated:
-        items_to_show = Item.get_by_seller(current_user.id, db)
+        base_query = {"seller_id": current_user.id}
+        final_query = {**base_query, **filter_query}
+        
+        item_docs = list(db.items.find(final_query).sort(sort_logic))
+        items_to_show = [Item(doc) for doc in item_docs]
     
     # 情況 B: 一般用戶瀏覽公共區域 (交換/買賣/租借)
     elif role == 'user' and active_tab in ['exchange', 'buy_sell', 'rent']:
@@ -51,18 +81,20 @@ def index():
         }
         t_type = type_map.get(active_tab)
         if t_type:
-            items_to_show = Item.get_all(t_type, db)
+            base_query = {"transaction_type": t_type}
+            final_query = {**base_query, **filter_query}
             
-            # 收集這些商品的賣家 ID 並查詢賣家資料
+            item_docs = list(db.items.find(final_query).sort(sort_logic))
+            items_to_show = [Item(doc) for doc in item_docs]
             seller_ids = list(set([item.seller_id for item in items_to_show]))
+
             for sid in seller_ids:
                 user_data = db.users.find_one({"_id": ObjectId(sid)})
                 if user_data:
                     seller_map[sid] = User(user_data)
 
-    current_tab_info = tab_info.get(active_tab, {})
     # 情況 C: 賣家查看「管理回應」tab（表達興趣列表）
-    if role == 'seller' and active_tab == 'responses' and current_user.is_authenticated:
+    elif role == 'seller' and active_tab == 'responses' and current_user.is_authenticated:
         owner_oid = ObjectId(current_user.id)
 
         # ===== A. 既有：買賣 / 租借 表達興趣 =====
@@ -126,17 +158,21 @@ def index():
 
             for ex in ex_docs:
                 target_item = items_map2.get(ex["target_item_id"])
-                offered_items = [
-                    items_map2.get(oid)
-                    for oid in ex.get("proposed_item_ids", [])
-                ]
+                offered_items_clean = []
+                for oid in ex.get("proposed_item_ids", []):
+                    item_doc = items_map2.get(oid)
+                    if item_doc:
+                        offered_items_clean.append({
+                            "name": item_doc.get("name"),
+                            "image_id": str(item_doc.get("image_id"))
+                        })
                 proposer = users_map2.get(ObjectId(ex["proposer_id"]))
 
                 exchange_requests.append({
                     "id": str(ex["_id"]),
                     "target_item": target_item,
                     "target_item_id": str(target_item["_id"]) if target_item else None,
-                    "offered_items": offered_items,
+                    "offered_items": offered_items_clean,
                     "proposer": proposer,
                     "status": ex.get("status", "pending"),
                     "created_at": ex.get("created_at"),
@@ -152,7 +188,10 @@ def index():
                            items=items_to_show,  
                            seller_map=seller_map,
                            interests=interests,
-                           exchange_requests=exchange_requests,)
+                           exchange_requests=exchange_requests,
+                           search_query=search_query,
+                           sort_order=sort_order,
+                           )
 
 # [新增] 處理個人資料更新的路由
 @bp.route('/profile/update', methods=['POST'])
@@ -577,3 +616,35 @@ def update_interest_status():
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+@bp.route("/update_exchange_status", methods=["POST"])
+@login_required
+def update_exchange_status():
+    data = request.get_json() or {}
+    exchange_id = data.get("exchange_id")
+    status = data.get("status")
+
+    if not exchange_id or not status:
+        return jsonify({"ok": False, "error": "Missing required fields"}), 400
+
+    db = current_app.db
+    
+    try:
+        oid = ObjectId(exchange_id)
+    except Exception:
+        return jsonify({"ok": False, "error": "Invalid exchange ID format"}), 400
+
+    # 安全檢查：確保是這筆交換的擁有者 (target_item_owner) 才能更新狀態
+    result = db.exchanges.update_one(
+        {
+            "_id": oid,
+            "target_item_owner_id": current_user.id
+        },
+        {"$set": {"status": status}}
+    )
+
+    # 檢查是否有文件被成功更新
+    if result.matched_count == 0:
+        return jsonify({"ok": False, "error": "Exchange not found or permission denied"}), 404
+    
+    return jsonify({"ok": True})

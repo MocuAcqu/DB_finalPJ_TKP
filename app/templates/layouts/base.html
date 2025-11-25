@@ -6,8 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>物品交換平台</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body data-current-user-id="{{ current_user.id if current_user.is_authenticated else '' }}">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="flash-messages">
@@ -23,6 +27,70 @@
     <main class="main-content">
         {% block content %}{% endblock %}
     </main>
+
+    <div id="detail-modal" class="detail-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="detail-modal-close">✕</button>
+            <!--  A. 商品資訊 -->
+            <h2 id="detail-title"></h2>
+
+            <div id="detail-tags" class="tags"></div>
+
+            <p>提供者：<span id="detail-seller"></span></p>
+
+            <img id="detail-image" class="detail-image">
+
+            <h4>物品描述</h4>
+            <p id="detail-description"></p>
+            <!-- B. 公開留言區 -->
+            <div id="detail-extra"></div>
+            <div class="comment-section">
+                <h3 class="comment-title">💬 留言</h3>
+                <div id="exchange-message-list" class="comment-list"></div>
+
+                <div class="comment-input">
+                    <textarea id="exchange-message-text" placeholder="輸入留言..."></textarea>
+                    <button id="exchange-message-submit">送出</button>
+                </div>
+            </div>
+            <!-- C. 提出交換請求 -->
+            <div class="exchange-section">
+                <h3 class="exchange-title"> 交換請求</h3>
+                <p class="exchange-hint">從「我的物品」中選一件提出交換：</p>
+
+                <!-- 這裡會由 JS 填入使用者自己的物品 -->
+                <div id="exchange-item-list" class="exchange-item-list"></div>
+
+                <button id="exchange-submit-btn" class="exchange-submit-btn" disabled>
+                    送出交換請求
+                </button>
+            </div>
+        </div>
+    </div>  
+    <!-- 交換請求專用 Modal -->
+    <div id="exchange-response-modal" class="detail-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="exchange-response-modal-close">✕</button>
+            <h3 id="response-modal-title" class="response-modal-title">交換請求詳情</h3>
+
+            <!-- 對方提供的物品 -->
+            <div class="offered-items-section">
+                <h4>對方提供的物品</h4>
+                <div id="response-offered-items-grid" class="offered-items-grid">
+                </div>
+            </div>
+
+            <!-- 交換討論串 -->
+            <div class="response-messages-section">
+                <h4>交換討論串</h4>
+                <div id="response-message-list" class="comment-list">
+                    <!-- JS 會在這裡填充留言 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
      <script>
         const alertElements = document.querySelectorAll('.alert');
         if (alertElements.length > 0) {
@@ -35,10 +103,16 @@
                         element.remove();
                     }, 500);
 
-                }, 3000);
+                }, 1500);
             });
         }
     </script>
+
+    <div id="image-lightbox" class="lightbox">
+        <span class="lightbox-close">&times;</span>
+        <img class="lightbox-content" id="lightbox-img">
+    </div>
+
     <script src="{{ url_for('static', filename='js/base.js') }}"></script>
 </body>
 </html>

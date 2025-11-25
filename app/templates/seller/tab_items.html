@@ -1,10 +1,7 @@
 <div class="seller-items-header"
      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-    <h1>我的物品清單</h1>
     <a href="{{ url_for('main.upload_item') }}"
-       class="btn-upload"
-       style="background-color: #28a745; color: white; padding: 10px 20px;
-              text-decoration: none; border-radius: 5px;">
+       class="btn-upload">
         + 上架新商品
     </a>
 </div>
@@ -21,7 +18,8 @@
                      style="height: 200px; overflow: hidden; background: #f8f9fa;">
                     <img src="{{ url_for('main.get_image', image_id=item.image_id) }}"
                          alt="{{ item.name }}"
-                         style="width: 100%; height: 100%; object-fit: cover;">
+                         style="width: 100%; height: 100%; object-fit: cover;"
+                         class="zoomable-image">
                 </div>
 
                 <div class="item-details" style="padding: 15px; flex-grow: 1;">
@@ -35,7 +33,7 @@
                      style="padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px;">
 
                     <a href="{{ url_for('main.edit_item', item_id=item.id) }}"
-                       style="flex: 1; text-align: center; background-color: #2196F3;
+                       style="flex: 1; text-align: center; background-color: #4e98d5;
                               color: white; text-decoration: none; padding: 8px; border-radius: 4px;">
                         編輯
                     </a>
@@ -45,7 +43,7 @@
                           style="flex: 1;"
                           onsubmit="return confirm('確定要刪除這個物品嗎？此動作無法復原。');">
                         <button type="submit"
-                                style="width: 100%; background-color: #f44336; color: white;
+                                style="width: 100%; background-color: #cf483f; color: white;
                                        border: none; padding: 8px; border-radius: 4px;
                                        cursor: pointer; font-size: 1rem;">
                             刪除

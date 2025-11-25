@@ -108,8 +108,17 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
-        closeModal.addEventListener("click", () => {
+        function closeDetailModal() {
             detailModal.style.display = "none";
+        }
+
+        closeModal.addEventListener("click", closeDetailModal);
+
+        // 監聽整個 Modal 背景的點擊事件
+        detailModal.addEventListener('click', (event) => {
+            if (event.target === detailModal) {
+                closeDetailModal();
+            }
         });
     }
 
@@ -125,7 +134,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const resp = await fetch(`/item/${itemId}/comments`);
             const data = await resp.json();
 
-            if (!data.ok) return;
+            if (!data.ok || !data.comments || data.comments.length === 0) {
+                list.innerHTML += '<p class="no-data-placeholder">該商品目前沒有任何公開留言。</p>';
+                return;
+            }
 
             (data.comments || []).forEach(c => {
                 const div = document.createElement("div");
@@ -299,77 +311,108 @@ document.addEventListener("DOMContentLoaded", () => {
         // 這頁沒出現就略過（避免其它頁報錯）
         if (!tabBar || !statusFilter || rows.length === 0) return;
 
-        const tabItems = tabBar.querySelectorAll(".tab-item");
-        const statusButtons = statusFilter.querySelectorAll(".status-btn");
-
-        function applyFilter() {
+        window.applyResponseFilters = function() {
             const activeTab = tabBar.querySelector(".tab-item.active");
             const activeStatusBtn = statusFilter.querySelector(".status-btn.active");
 
-            const typeFilter = activeTab ? (activeTab.dataset.type || "all") : "all";
-            const statusFilterValue = activeStatusBtn ? (activeStatusBtn.dataset.status || "all") : "all";
+            const typeFilter = activeTab ? activeTab.dataset.type : "all";
+            const statusFilterValue = activeStatusBtn ? activeStatusBtn.dataset.status : "all";
 
             rows.forEach(row => {
-                const rowType = row.dataset.type || "unknown";
-                const rowStatus = row.dataset.status || "pending";
+                const rowType = row.dataset.type;
+                const rowStatus = row.dataset.status;
 
-                let show = true;
-
-                if (typeFilter !== "all" && rowType !== typeFilter) {
-                    show = false;
-                }
-
-                if (statusFilterValue !== "all" && rowStatus !== statusFilterValue) {
-                    show = false;
-                }
-
+                let show = (typeFilter === "all" || rowType === typeFilter) &&
+                           (statusFilterValue === "all" || rowStatus === statusFilterValue);
+                
                 row.style.display = show ? "" : "none";
             });
         }
 
-        // 類型 tab 點擊
-        tabItems.forEach(btn => {
+        tabBar.querySelectorAll(".tab-item").forEach(btn => {
             btn.addEventListener("click", () => {
-                tabItems.forEach(b => b.classList.remove("active"));
+                tabBar.querySelectorAll(".tab-item").forEach(b => b.classList.remove("active"));
                 btn.classList.add("active");
-                applyFilter();
+                window.applyResponseFilters();
+            });
+        });
+        statusFilter.querySelectorAll(".status-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                statusFilter.querySelectorAll(".status-btn").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                window.applyResponseFilters();
             });
         });
 
-        // 狀態按鈕點擊
+        window.applyResponseFilters();
+    })();
+
+    (function setupExchangeFilters() {
+        const statusFilter = document.querySelector(".exchange-status-filter");
+        const rows = document.querySelectorAll("tr.exchange-row");
+
+        if (!statusFilter || rows.length === 0) {
+            return;
+        }
+
+        const statusButtons = statusFilter.querySelectorAll(".status-btn");
+
+        function applyExchangeFilter() {
+            const activeStatusBtn = statusFilter.querySelector(".status-btn.active");
+            const statusFilterValue = activeStatusBtn ? activeStatusBtn.dataset.status : "all";
+
+
+            rows.forEach(row => {
+                const rowStatus = row.dataset.status;
+                const show = (statusFilterValue === "all" || rowStatus === statusFilterValue);
+                
+                row.style.display = show ? "" : "none";
+            });
+        }
+
         statusButtons.forEach(btn => {
             btn.addEventListener("click", () => {
+                // 移除所有按鈕的 'active' class
                 statusButtons.forEach(b => b.classList.remove("active"));
+                // 為被點擊的按鈕加上 'active' class
                 btn.classList.add("active");
-                applyFilter();
+                applyExchangeFilter();
             });
         });
 
-        // 初始套用一次（避免未登入、或資料很多時）
-        applyFilter();
+        // 4. 頁面載入時，先執行一次篩選
+        applyExchangeFilter();
     })();
 
     /* =======================================================
     9. 表達興趣：狀態下拉選單 + 自動隱藏買家欄位
     ======================================================= */
     (function setupStatusDropdown() {
-        const selects = document.querySelectorAll('.status-dropdown');
-
-        if (selects.length === 0) return;
-
-        selects.forEach(sel => {
-
-            // 初始化：根據現在狀態 hide/顯示買家欄位
-            toggleBuyerCell(sel);
-
-            sel.addEventListener('change', async function () {
+        document.querySelectorAll('.status-dropdown').forEach(selectElement => {
+            selectElement.addEventListener('change', async function () {
                 const newStatus = this.value;
-                const interestId = this.dataset.id;
+                const row = this.closest('tr.interest-row');
+                if (!row) return; // 安全檢查
+                const interestId = row.dataset.id;
+                
+                // 1. 即時更新 tr 的 data-status 屬性，以便篩選
+                row.dataset.status = newStatus; 
+                
+                // 2. 【擴充】如果新狀態是 'done' 或 'rejected'，替換下拉選單
+                if (newStatus === "done" || newStatus === "rejected") {
+                    const statusCell = this.closest('td.status-cell');
+                    if (statusCell) {
+                        let statusText = newStatus === 'done' ? '已完成' : '已拒絕';
+                        statusCell.innerHTML = `<span class="status-${newStatus}">${statusText}</span>`;
+                    }
+                }
 
-                // 前端更新 buyer 欄位顯示
-                toggleBuyerCell(this);
+                // 3. 呼叫篩選函式，即時更新介面
+                if (window.applyResponseFilters) {
+                    window.applyResponseFilters();
+                }
 
-                // ===== 呼叫後端更新狀態 =====
+                // 4. 呼叫後端 API 更新狀態 (這部分不變)
                 try {
                     const resp = await fetch("/update_interest_status", {
                         method: "POST",
@@ -379,35 +422,242 @@ document.addEventListener("DOMContentLoaded", () => {
                             status: newStatus
                         })
                     });
-
                     const data = await resp.json();
                     if (!data.ok) {
                         alert("狀態更新失敗：" + (data.error || ""));
+                        // 如果更新失敗，可以考慮將 UI 恢復原狀
                     }
-
                 } catch (err) {
-                    console.error(err);
-                    alert("更新狀態時發生錯誤");
+                    console.error("更新狀態時發生錯誤:", err);
+                    alert("更新狀態時發生網路錯誤。");
                 }
             });
-
         });
-
-        // 負責隱藏/顯示「買家欄位」
-        function toggleBuyerCell(selectEl) {
-            const status = selectEl.value;
-            const row = selectEl.closest("tr");
-            if (!row) return;
-
-            const buyerCell = row.children[1]; // 第二欄是買家
-
-            if (status === "done") {
-                buyerCell.style.display = "none";
-            } else {
-                buyerCell.style.display = "";
-            }
-        }
-
     })();
 
+    (function setupSortSelect() {
+        const sortSelect = document.getElementById('sort-select');
+        if (!sortSelect) {
+            return;
+        }
+
+        sortSelect.addEventListener('change', function() {
+            const form = this.closest('form');
+            if (form) {
+                form.submit();
+            }
+        });
+    })();
+
+    /* =======================================================
+    10. (重構) 管理回應：顯示交換請求詳情 Modal
+    ======================================================= */
+    (function setupExchangeResponseModal() {
+        const modal = document.getElementById('exchange-response-modal');
+        const closeBtn = document.getElementById('exchange-response-modal-close');
+        const titleEl = document.getElementById('response-modal-title');
+        const itemsGridEl = document.getElementById('response-offered-items-grid');
+        const messageListEl = document.getElementById('response-message-list');
+        
+        if (!modal || !closeBtn) return;
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) closeModal();
+        });
+
+        // 將事件監聽器綁定在 document 上
+        document.addEventListener('click', async function(event) {
+            const button = event.target.closest('.view-exchange-detail-btn');
+
+            if (!button) {
+                return;
+            }
+
+            try {
+                const exchangeId = button.dataset.exchangeId;
+                const proposerName = button.dataset.proposerName;
+                const targetItemId = button.dataset.itemId;
+                const offeredItems = JSON.parse(button.dataset.offeredItems);
+                
+                titleEl.textContent = `來自 ${proposerName} 的交換請求`;
+                
+                itemsGridEl.innerHTML = '';
+                if (offeredItems && offeredItems.length > 0) {
+                    offeredItems.forEach(item => {
+                        const itemCard = document.createElement('div');
+                        itemCard.className = 'offered-item-card';
+                        itemCard.innerHTML = `
+                            <img src="/image/${item.image_id}" alt="${item.name}" class="zoomable-image">
+                            <p>${item.name}</p>
+                        `;
+                        itemsGridEl.appendChild(itemCard);
+                    });
+                } else {
+                    itemsGridEl.innerHTML = '<p class="no-data-placeholder">對方未提供交換物品。</p>';
+                }
+
+                await loadItemCommentsForResponseModal(targetItemId, proposerName);
+                
+                modal.style.display = "flex";
+
+            } catch (err) {
+                console.error("處理交換詳情點擊時發生錯誤:", err);
+                alert("顯示詳情時發生錯誤，請查看控制台。");
+            }
+        });
+        
+    })();
+
+    /* =======================================================
+    11. (新函式) 專為「回應 Modal」載入「公開商品留言」
+    ======================================================= */
+    async function loadItemCommentsForResponseModal(itemId, proposerName) {
+        const targetElement = document.getElementById('response-message-list');
+        
+        if (!targetElement) return;
+
+        targetElement.innerHTML = "";
+
+        try {
+            // 呼叫獲取「公開商品留言」的 API
+            const resp = await fetch(`/item/${itemId}/comments`); 
+            if (!resp.ok) throw new Error("伺服器回應錯誤");
+
+            const data = await resp.json();
+            
+            if (!data.ok || !data.comments || data.comments.length === 0) {
+                targetElement.innerHTML = '<p class="no-data-placeholder">該商品目前沒有任何公開留言。</p>';
+                return;
+            }
+
+            const proposerComments = data.comments.filter(comment => comment.username === proposerName);
+
+            // 2. 檢查篩選後是否還有留言
+            if (proposerComments.length === 0) {
+                targetElement.innerHTML = '<p class="no-data-placeholder">提出者尚未在此商品頁面留言。</p>';
+                return;
+            }
+
+            // 3. 只遍歷篩選後的留言陣列
+            proposerComments.forEach(c => {
+                const div = document.createElement("div");
+                div.className = "comment-item";
+                div.innerHTML = `
+                    <strong>${c.username}</strong>
+                    <span class="comment-time">${formatTime(c.timestamp)}</span>
+                    <p>${c.text}</p>
+                `;
+                targetElement.appendChild(div);
+            });
+        } catch (err) {
+            console.error("為回應 Modal 載入留言時失敗:", err);
+            targetElement.innerHTML = '<p class="error-message">載入留言失敗。</p>';
+        }
+    }
+    /* =======================================================
+       12. (新增) 圖片放大 Lightbox 功能
+    ======================================================= */
+    (function setupImageLightbox() {
+        // 獲取 Lightbox 相關元素
+        const lightbox = document.getElementById('image-lightbox');
+        if (!lightbox) return; // 如果頁面沒有 lightbox，就直接返回
+
+        const lightboxImg = document.getElementById('lightbox-img');
+        const closeBtn = lightbox.querySelector('.lightbox-close');
+
+        // 使用事件委派來監聽所有可放大圖片的點擊
+        document.addEventListener('click', function(event) {
+            // 檢查被點擊的元素是否是 (或在) 一個帶有 'zoomable-image' class 的元素
+            const imageTarget = event.target.closest('.zoomable-image');
+            
+            if (imageTarget) {
+                event.preventDefault(); // 如果圖片在一個 <a> 標籤內，阻止跳轉
+                
+                // 顯示 Lightbox
+                lightbox.style.display = 'flex'; // 使用 flex 來居中
+                
+                // 設置放大的圖片來源和標題
+                lightboxImg.src = imageTarget.src;
+            }
+        });
+
+        // 關閉 Lightbox 的函式
+        function closeLightbox() {
+            lightbox.style.display = 'none';
+        }
+
+        // 綁定關閉事件
+        closeBtn.addEventListener('click', closeLightbox);
+        
+        // 點擊背景也可以關閉
+        lightbox.addEventListener('click', function(event) {
+            if (event.target === lightbox) {
+                closeLightbox();
+            }
+        });
+
+        // 按下 Esc 鍵也可以關閉
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && lightbox.style.display === 'flex') {
+                closeLightbox();
+            }
+        });
+
+    })();
+    /* =======================================================
+       13. (新增) 管理回應：交換請求狀態下拉選單
+    ======================================================= */
+    (function setupExchangeStatusDropdown() {
+        document.querySelectorAll('.exchange-status-dropdown').forEach(selectElement => {
+            selectElement.addEventListener('change', async function() {
+                const newStatus = this.value;
+                const exchangeId = this.dataset.exchangeId;
+
+                try {
+                    const resp = await fetch("/update_exchange_status", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            exchange_id: exchangeId,
+                            status: newStatus
+                        })
+                    });
+
+                    const data = await resp.json();
+                    if (data.ok) {
+                        // 更新成功後，將下拉選單替換為靜態文字，提供即時回饋
+                        const statusCell = this.closest('td.status-cell');
+                        let statusText = '';
+                        let statusClass = '';
+                        if (newStatus === 'accepted') {
+                            statusText = '已接受';
+                            statusClass = 'status-accepted';
+                        } else if (newStatus === 'rejected') {
+                            statusText = '已拒絕';
+                            statusClass = 'status-rejected';
+                        }
+                        
+                        if (statusText) {
+                            statusCell.innerHTML = `<span class="${statusClass}">${statusText}</span>`;
+                        }
+                    } else {
+                        alert("狀態更新失敗：" + (data.error || "未知錯誤"));
+                        // 如果更新失敗，將下拉選單的值重設回之前的值
+                        this.value = this.querySelector('option[selected]').value;
+                    }
+                } catch (err) {
+                    console.error("更新交換狀態時發生錯誤:", err);
+                    alert("更新狀態時發生網路錯誤。");
+                }
+            });
+        });
+    })();
 });
+
+
+
