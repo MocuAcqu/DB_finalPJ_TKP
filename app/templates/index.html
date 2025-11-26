@@ -2,7 +2,6 @@
 
 {% block content %}
 <div class="content-area">
-    <!-- tab bar -->
     <div class="tab-bar-container">
         <div class="tab-bar">
             {% if role == 'user' %}
@@ -37,26 +36,52 @@
     {% endif %}
 
     <div class="page-content">
-    {% if role == 'user' %} 
-        {% if active_tab == 'exchange' %}
-            {% include 'user/tab_exchange.html' %}
-        {% elif active_tab == 'buy_sell' %}
-            {% include 'user/tab_buy_sell.html' %}
-        {% elif active_tab == 'rent' %}
-            {% include 'user/tab_rent.html' %}
-        {% elif active_tab == 'profile' %}
-            {% include 'user/tab_profile.html' %}
+        {% if role == 'user' %} 
+            {% if active_tab == 'exchange' %}
+                {% include 'user/tab_exchange.html' %}
+            {% elif active_tab == 'buy_sell' %}
+                {% include 'user/tab_buy_sell.html' %}
+            {% elif active_tab == 'rent' %}
+                {% include 'user/tab_rent.html' %}
+            {% elif active_tab == 'profile' %}
+                {% include 'user/tab_profile.html' %}
+            {% endif %}
+
+        {% elif role == 'seller' %}
+            {% if active_tab == 'items' %}
+                {% include 'seller/tab_items.html' %}
+            {% elif active_tab == 'responses' %}
+                {% include 'seller/tab_responses.html' %}
+            {% elif active_tab == 'profile' %}
+                {% include 'seller/tab_profile.html' %}
+            {% endif %}
         {% endif %}
 
-    {% elif role == 'seller' %}
-        {% if active_tab == 'items' %}
-            {% include 'seller/tab_items.html' %}
-        {% elif active_tab == 'responses' %}
-            {% include 'seller/tab_responses.html' %}
-        {% elif active_tab == 'profile' %}
-            {% include 'seller/tab_profile.html' %}
+        {% if total_pages > 1 and active_tab in ['exchange', 'buy_sell', 'rent', 'items'] %}
+        <div class="pagination-container" style="text-align: center; margin-top: 40px; margin-bottom: 20px;">
+            {% if page > 1 %}
+                <a href="{{ url_for('main.index', role=role, tab=active_tab, q=search_query, sort=sort_order, page=page-1) }}" 
+                   style="display: inline-block; padding: 8px 14px; margin: 0 4px; border: 1px solid #ddd; border-radius: 4px; text-decoration: none; color: #555; background: #fff;">
+                   &laquo; 上一頁
+                </a>
+            {% endif %}
+
+            {% for p in range(1, total_pages + 1) %}
+                <a href="{{ url_for('main.index', role=role, tab=active_tab, q=search_query, sort=sort_order, page=p) }}" 
+                   style="display: inline-block; padding: 8px 14px; margin: 0 4px; border: 1px solid #ddd; border-radius: 4px; text-decoration: none; 
+                          {% if p == page %}background-color: #4e98d5; color: white; border-color: #4e98d5;{% else %}color: #555; background: #fff;{% endif %}">
+                    {{ p }}
+                </a>
+            {% endfor %}
+
+            {% if page < total_pages %}
+                <a href="{{ url_for('main.index', role=role, tab=active_tab, q=search_query, sort=sort_order, page=page+1) }}" 
+                   style="display: inline-block; padding: 8px 14px; margin: 0 4px; border: 1px solid #ddd; border-radius: 4px; text-decoration: none; color: #555; background: #fff;">
+                   下一頁 &raquo;
+                </a>
+            {% endif %}
+        </div>
         {% endif %}
-    {% endif %}
     </div>
 </div>
 {% endblock %}
