@@ -15,6 +15,9 @@ def index():
     search_query = request.args.get('q', '').strip()
     sort_order = request.args.get('sort', 'desc') 
     
+    # [新增] 取得目前頁碼，預設為第 1 頁
+    page = request.args.get('page', 1, type=int)
+    
     # 1 為 ascending, -1 為 descending 
     sort_direction = 1 if sort_order == 'asc' else -1
     sort_logic = [("created_at", sort_direction)] # 預設按創建時間排序
@@ -46,6 +49,12 @@ def index():
     default_tab = 'items' if role == 'seller' else 'exchange'
     active_tab = request.args.get('tab', default_tab)
 
+    # --- [修改] 設定每頁筆數邏輯 ---
+    per_page = 12  # 預設其他列表維持 12 筆
+    if role == 'seller' and active_tab == 'items':
+        per_page = 15  # 我的物品改為 15 筆
+    # ----------------------------
+
     tab_info = {
         'exchange': {'title': '物品交換', 'description': '瀏覽可交換的物品，點擊查看詳情'},
         'buy_sell': {'title': '買賣專區', 'description': '瀏覽待售物品，點擊「有興趣」聯繫賣家'},
@@ -60,6 +69,9 @@ def index():
     seller_map = {}        # 存放 {seller_id: User物件} 的對照表
     interests = []         # 存放賣家「管理回應」列表
     exchange_requests = []
+    
+    # [新增] 總頁數變數，預設為 1
+    total_pages = 1
 
     db = current_app.db
 
@@ -68,7 +80,13 @@ def index():
         base_query = {"seller_id": current_user.id}
         final_query = {**base_query, **filter_query}
         
-        item_docs = list(db.items.find(final_query).sort(sort_logic))
+        # [修改] 使用動態的 per_page (此時為 15)
+        total_items = db.items.count_documents(final_query)
+        total_pages = (total_items + per_page - 1) // per_page 
+        
+        item_docs = list(db.items.find(final_query).sort(sort_logic)
+                         .skip((page - 1) * per_page)
+                         .limit(per_page))
         items_to_show = [Item(doc) for doc in item_docs]
     
     # 情況 B: 一般用戶瀏覽公共區域 (交換/買賣/租借)
@@ -84,8 +102,15 @@ def index():
             base_query = {"transaction_type": t_type}
             final_query = {**base_query, **filter_query}
             
-            item_docs = list(db.items.find(final_query).sort(sort_logic))
+            # [修改] 使用動態的 per_page (此時為 12)
+            total_items = db.items.count_documents(final_query)
+            total_pages = (total_items + per_page - 1) // per_page
+            
+            item_docs = list(db.items.find(final_query).sort(sort_logic)
+                             .skip((page - 1) * per_page)
+                             .limit(per_page))
             items_to_show = [Item(doc) for doc in item_docs]
+            
             seller_ids = list(set([item.seller_id for item in items_to_show]))
 
             for sid in seller_ids:
@@ -179,7 +204,6 @@ def index():
                 })
     current_tab_info = tab_info.get(active_tab, {})
     
-    # 統一使用 items 變數傳遞
     return render_template('index.html', 
                            role=role, 
                            active_tab=active_tab, 
@@ -191,6 +215,8 @@ def index():
                            exchange_requests=exchange_requests,
                            search_query=search_query,
                            sort_order=sort_order,
+                           page=page,
+                           total_pages=total_pages
                            )
 
 # [新增] 處理個人資料更新的路由
