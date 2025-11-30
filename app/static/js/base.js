@@ -659,5 +659,394 @@ document.addEventListener("DOMContentLoaded", () => {
     })();
 });
 
+// ============================================
+// 批量刪除功能 - EditModeManager 類別
+// ============================================
 
+class EditModeManager {
+    constructor(config) {
+        this.editBtn = document.getElementById(config.editBtnId);
+        this.bulkActions = document.getElementById(config.bulkActionsId);
+        this.checkboxHeader = document.getElementById(config.checkboxHeaderId);
+        this.selectAll = document.getElementById(config.selectAllId);
+        this.checkboxClass = config.checkboxClass;
+        this.checkboxColClass = config.checkboxColClass;
+        this.deleteBtn = document.getElementById(config.deleteBtnId);
+        this.cancelBtn = document.getElementById(config.cancelBtnId);
+        this.selectedCount = document.getElementById(config.selectedCountId);
+        this.deleteType = config.deleteType; // 'interest' 或 'exchange'
+        this.isEditMode = false;
 
+        this.init();
+    }
+
+    init() {
+        // 如果連編輯按鈕都沒有，就直接跳過
+        if (!this.editBtn) return;
+
+        // 🔍 檢查這一區有沒有對應的列（checkbox-col1 / checkbox-col2）
+        const hasRows = document.querySelectorAll(`.${this.checkboxColClass}`).length > 0;
+
+        // 這一區沒有任何 row 或缺重要元素 → 直接停用編輯按鈕，不初始化
+        if (!hasRows || !this.bulkActions || !this.selectedCount) {
+            this.editBtn.disabled = true;
+            this.editBtn.classList.add("disabled");
+            return;
+        }
+
+        // ===== 開始綁定事件 =====
+
+        // 編輯按鈕
+        this.editBtn.addEventListener("click", () => this.toggleEditMode());
+
+        // 取消按鈕（有才綁）
+        if (this.cancelBtn) {
+            this.cancelBtn.addEventListener("click", () => this.exitEditMode());
+        }
+
+        // 刪除按鈕（有才綁）
+        if (this.deleteBtn) {
+            this.deleteBtn.addEventListener("click", () => this.deleteSelected());
+        }
+
+        // 全選（有 selectAll 才綁，避免上面那區沒 table 時報錯）
+        if (this.selectAll) {
+            this.selectAll.addEventListener("change", (e) => {
+                const checkboxes = document.querySelectorAll(`.${this.checkboxClass}`);
+                checkboxes.forEach(cb => {
+                    const row = cb.closest("tr");
+                    if (!row) return;
+
+                    const isHidden = row.classList.contains("hidden");
+                    const isDeletable = row.dataset.deleted === "1";
+                    const isDisabled = cb.disabled;
+
+                    if (!isHidden && isDeletable && !isDisabled) {
+                        cb.checked = e.target.checked;
+                    }
+                });
+                this.updateSelectedCount();
+            });
+        }
+
+        // 監聽單個複選框變化（全域事件，但只處理自己的 checkboxClass）
+        document.addEventListener("change", (e) => {
+            if (e.target.classList.contains(this.checkboxClass)) {
+                const cb = e.target;
+                const row = cb.closest("tr");
+                if (!row) return;
+
+                const isDeletable = row.dataset.deleted === "1";
+
+                // 不可刪除或 disabled → 不允許被打勾
+                if (!isDeletable || cb.disabled) {
+                    cb.checked = false;
+                    this.updateSelectedCount();
+                    return;
+                }
+
+                this.updateSelectedCount();
+            }
+        });
+    }
+
+    toggleEditMode() {
+        this.isEditMode = !this.isEditMode;
+
+        if (this.isEditMode) {
+            this.enterEditMode();
+        } else {
+            this.exitEditMode();
+        }
+    }
+
+    enterEditMode() {
+        if (this.editBtn) {
+            this.editBtn.textContent = "完成";
+            this.editBtn.classList.add("active");
+        }
+        if (this.bulkActions) {
+            this.bulkActions.classList.add("show");
+        }
+        if (this.checkboxHeader) {
+            this.checkboxHeader.classList.remove("hidden");
+        }
+
+        const checkboxCols = document.querySelectorAll(`.${this.checkboxColClass}`);
+        checkboxCols.forEach(col => col.classList.remove("hidden"));
+
+        this.updateSelectedCount();
+    }
+
+    exitEditMode() {
+        this.isEditMode = false;
+
+        if (this.editBtn) {
+            this.editBtn.textContent = "編輯";
+            this.editBtn.classList.remove("active");
+        }
+        if (this.bulkActions) {
+            this.bulkActions.classList.remove("show");
+        }
+        if (this.checkboxHeader) {
+            this.checkboxHeader.classList.add("hidden");
+        }
+
+        const checkboxCols = document.querySelectorAll(`.${this.checkboxColClass}`);
+        checkboxCols.forEach(col => col.classList.add("hidden"));
+
+        // 取消所有選擇
+        const checkboxes = document.querySelectorAll(`.${this.checkboxClass}`);
+        checkboxes.forEach(cb => (cb.checked = false));
+
+        if (this.selectAll) {
+            this.selectAll.checked = false;
+        }
+
+        this.updateSelectedCount();
+    }
+
+    updateSelectedCount() {
+        // 若沒有這些元素，就不用做了（例如那一區根本沒啟用）
+        if (!this.selectedCount || !this.deleteBtn) return;
+
+        const checkboxes = document.querySelectorAll(`.${this.checkboxClass}`);
+
+        // 目前有顯示、且「可刪除」的 checkbox
+        const visibleDeletable = Array.from(checkboxes).filter((cb) => {
+            const row = cb.closest("tr");
+            if (!row) return false;
+
+            const isHidden = row.classList.contains("hidden");
+            const isDeletable = row.dataset.deleted === "1";
+            const isDisabled = cb.disabled;
+
+            return !isHidden && isDeletable && !isDisabled;
+        });
+
+        const checkedCount = visibleDeletable.filter((cb) => cb.checked).length;
+
+        this.selectedCount.textContent = `已選擇 ${checkedCount} 項`;
+        this.deleteBtn.disabled = checkedCount === 0;
+
+        if (this.selectAll) {
+            const allChecked =
+                visibleDeletable.length > 0 &&
+                visibleDeletable.every((cb) => cb.checked);
+            this.selectAll.checked = allChecked;
+        }
+    }
+
+    deleteSelected() {
+        const checkboxes = document.querySelectorAll(
+            `.${this.checkboxClass}:checked`
+        );
+
+        if (checkboxes.length === 0) return;
+
+        // 只取真正可刪除的
+        const validCheckboxes = Array.from(checkboxes).filter((cb) => {
+            const row = cb.closest("tr");
+            if (!row) return false;
+            const isDeletable = row.dataset.deleted === "1";
+            const isDisabled = cb.disabled;
+            return isDeletable && !isDisabled;
+        });
+
+        if (validCheckboxes.length === 0) {
+            alert("目前沒有可以刪除的項目。");
+            return;
+        }
+
+        if (confirm(`確定要刪除選取的 ${validCheckboxes.length} 個項目嗎?`)) {
+            const idsToDelete = [];
+            validCheckboxes.forEach((cb) => {
+                const row = cb.closest("tr");
+                const id = row.dataset.id;
+                idsToDelete.push(id);
+
+                // 前端視覺效果
+                row.style.opacity = "0";
+                row.style.transition = "opacity 0.3s";
+                setTimeout(() => row.remove(), 300);
+            });
+
+            // 發送到後端刪除
+            this.sendDeleteRequest(idsToDelete);
+
+            setTimeout(() => {
+                this.updateSelectedCount();
+            }, 350);
+        }
+    }
+
+    sendDeleteRequest(ids) {
+        // 根據類型決定路由
+        const url =
+            this.deleteType === "interest"
+                ? "/delete-interests"
+                : "/delete-exchanges";
+
+        fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ ids: ids }),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.ok) {
+                    console.log("刪除成功:", data.message);
+                } else {
+                    alert("刪除失敗: " + (data.error || "未知錯誤"));
+                    location.reload();
+                }
+            })
+            .catch((error) => {
+                console.error("刪除失敗:", error);
+                alert("刪除失敗，請稍後再試");
+                location.reload();
+            });
+    }
+}
+
+// ============================================
+// 初始化編輯模式 (僅在 responses 頁面)
+// ============================================
+
+document.addEventListener("DOMContentLoaded", function () {
+    // 檢查是否在 responses 頁面
+    const isResponsesPage = document.getElementById("editModeBtn1") !== null;
+
+    if (isResponsesPage) {
+        // 初始化表達興趣表格的編輯模式
+        const interestEditMode = new EditModeManager({
+            editBtnId: "editModeBtn1",
+            bulkActionsId: "bulkActions1",
+            checkboxHeaderId: "checkboxHeader1",
+            selectAllId: "selectAll1",
+            checkboxClass: "interest-checkbox",
+            checkboxColClass: "checkbox-col1",
+            deleteBtnId: "deleteBtn1",
+            cancelBtnId: "cancelBtn1",
+            selectedCountId: "selectedCount1",
+            deleteType: "interest",
+        });
+
+        // 初始化交換請求表格的編輯模式
+        const exchangeEditMode = new EditModeManager({
+            editBtnId: "editModeBtn2",
+            bulkActionsId: "bulkActions2",
+            checkboxHeaderId: "checkboxHeader2",
+            selectAllId: "selectAll2",
+            checkboxClass: "exchange-checkbox",
+            checkboxColClass: "checkbox-col2",
+            deleteBtnId: "deleteBtn2",
+            cancelBtnId: "cancelBtn2",
+            selectedCountId: "selectedCount2",
+            deleteType: "exchange",
+        });
+
+        // 篩選功能 - 表達興趣
+        const responsesTabBar = document.querySelectorAll(
+            ".responses-tab-bar .tab-item"
+        );
+        if (responsesTabBar.length > 0) {
+            responsesTabBar.forEach((tab) => {
+                tab.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    responsesTabBar.forEach((t) => t.classList.remove("active"));
+                    this.classList.add("active");
+                    filterInterests();
+                    interestEditMode.updateSelectedCount();
+                });
+            });
+        }
+
+        const responsesStatusFilter = document.querySelectorAll(
+            ".responses-status-filter .status-btn"
+        );
+        if (responsesStatusFilter.length > 0) {
+            responsesStatusFilter.forEach((btn) => {
+                btn.addEventListener("click", function () {
+                    responsesStatusFilter.forEach((b) =>
+                        b.classList.remove("active")
+                    );
+                    this.classList.add("active");
+                    filterInterests();
+                    interestEditMode.updateSelectedCount();
+                });
+            });
+        }
+
+        // 篩選功能 - 交換請求
+        const exchangeStatusFilter = document.querySelectorAll(
+            ".exchange-status-filter .status-btn"
+        );
+        if (exchangeStatusFilter.length > 0) {
+            exchangeStatusFilter.forEach((btn) => {
+                btn.addEventListener("click", function () {
+                    exchangeStatusFilter.forEach((b) =>
+                        b.classList.remove("active")
+                    );
+                    this.classList.add("active");
+                    filterExchanges();
+                    exchangeEditMode.updateSelectedCount();
+                });
+            });
+        }
+
+        // 篩選函數
+        function filterInterests() {
+            const activeTab = document.querySelector(
+                ".responses-tab-bar .tab-item.active"
+            );
+            const activeStatusBtn = document.querySelector(
+                ".responses-status-filter .status-btn.active"
+            );
+
+            if (!activeTab || !activeStatusBtn) return;
+
+            const activeType = activeTab.dataset.type;
+            const activeStatus = activeStatusBtn.dataset.status;
+
+            document.querySelectorAll(".interest-row").forEach((row) => {
+                const rowType = row.dataset.type;
+                const rowStatus = row.dataset.status;
+
+                const typeMatch = activeType === "all" || rowType === activeType;
+                const statusMatch =
+                    activeStatus === "all" || rowStatus === activeStatus;
+
+                if (typeMatch && statusMatch) {
+                    row.classList.remove("hidden");
+                } else {
+                    row.classList.add("hidden");
+                }
+            });
+        }
+
+        function filterExchanges() {
+            const activeStatusBtn = document.querySelector(
+                ".exchange-status-filter .status-btn.active"
+            );
+
+            if (!activeStatusBtn) return;
+
+            const activeStatus = activeStatusBtn.dataset.status;
+
+            document.querySelectorAll(".exchange-row").forEach((row) => {
+                const rowStatus = row.dataset.status;
+                const statusMatch =
+                    activeStatus === "all" || rowStatus === activeStatus;
+
+                if (statusMatch) {
+                    row.classList.remove("hidden");
+                } else {
+                    row.classList.add("hidden");
+                }
+            });
+        }
+    }
+});

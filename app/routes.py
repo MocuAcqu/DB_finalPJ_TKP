@@ -61,7 +61,8 @@ def index():
         'rent': {'title': '租借專區', 'description': '瀏覽可租借物品，點擊「有興趣」聯繫出借者'},
         'items': {'title': '我的物品', 'description': '管理您的物品清單'},
         'responses': {'title': '管理回應', 'description': '查看買家或交換者的回應'},
-        'profile': {'title': '個人資料', 'description': '管理您的個人資訊與聯絡方式'}
+        'profile': {'title': '個人資料', 'description': '管理您的個人資訊與聯絡方式'},
+        'notifications':  {'title': '通知', 'description': '查看賣家回覆'}
     }
 
     # --- 資料撈取邏輯 ---
@@ -69,6 +70,7 @@ def index():
     seller_map = {}        # 存放 {seller_id: User物件} 的對照表
     interests = []         # 存放賣家「管理回應」列表
     exchange_requests = []
+    notifications = []     # 給買家看的通知列表
     
     # [新增] 總頁數變數，預設為 1
     total_pages = 1
@@ -153,6 +155,117 @@ def index():
                     "created_at": tx.get("created_at"),
                 })
 
+        # ===== B. 交換請求列表 (別人對你的物品提出交換) =====
+        ex_docs = list(db.exchanges.find(
+            {"target_item_owner_id": current_user.id}
+        ).sort("created_at", -1))
+
+        if ex_docs:
+            # 目標物品 & 對方提出的物品
+            target_ids = [ex["target_item_id"] for ex in ex_docs]
+            proposed_ids = []
+            for ex in ex_docs:
+                proposed_ids.extend(ex.get("proposed_item_ids", []))
+
+            all_item_ids = list({*target_ids, *proposed_ids})
+
+            items_map2 = {
+                doc["_id"]: doc
+                for doc in db.items.find({"_id": {"$in": all_item_ids}})
+            }
+
+            # 提出者
+            proposer_ids = list({ex["proposer_id"] for ex in ex_docs})
+            users_map2 = {
+                doc["_id"]: doc
+                for doc in db.users.find({
+                    "_id": {"$in": [ObjectId(uid) for uid in proposer_ids]}
+                })
+            }
+
+            for ex in ex_docs:
+                target_item = items_map2.get(ex["target_item_id"])
+                offered_items_clean = []
+                for oid in ex.get("proposed_item_ids", []):
+                    item_doc = items_map2.get(oid)
+                    if item_doc:
+                        offered_items_clean.append({
+                            "name": item_doc.get("name"),
+                            "image_id": str(item_doc.get("image_id"))
+                        })
+                proposer = users_map2.get(ObjectId(ex["proposer_id"]))
+
+                exchange_requests.append({
+                    "id": str(ex["_id"]),
+                    "target_item": target_item,
+                    "target_item_id": str(target_item["_id"]) if target_item else None,
+                    "offered_items": offered_items_clean,
+                    "proposer": proposer,
+                    "status": ex.get("status", "pending"),
+                    "created_at": ex.get("created_at"),
+                })
+
+    # 情況 D: 一般使用者查看「通知」tab
+    elif role == 'user' and active_tab == 'notifications' and current_user.is_authenticated:
+
+        # ---- 1. 買賣 / 租借 通知：transactions ----
+        tx_docs = list(db.transactions.find(
+            {"interested_user_id": ObjectId(current_user.id)}
+        ).sort("created_at", -1))
+
+        # 先收集該用戶所有相關的 item_id，等等一次查 items
+        tx_item_ids = [tx["item_id"] for tx in tx_docs if "item_id" in tx]
+
+        items_map = {}
+        if tx_item_ids:
+            items_map = {
+                doc["_id"]: doc
+                for doc in db.items.find({"_id": {"$in": tx_item_ids}})
+            }
+
+        for tx in tx_docs:
+            item_doc = items_map.get(tx.get("item_id"))
+            item_name = tx.get("item_name")
+            if not item_name and item_doc:
+                item_name = item_doc.get("name")
+
+            notifications.append({
+                "kind": "transaction",  # 類型：買賣/租借
+                "item_name": item_name or "未命名物品",
+                "status": tx.get("status", "pending"),
+                "transaction_type": tx.get("transaction_type"),
+                "interested_user_id": str(tx.get("interested_user_id")),  
+                "owner_id": str(tx.get("owner_id")), 
+                "created_at": tx.get("created_at"),
+            })
+
+        # ---- 2. 交換 通知：exchanges (proposer 是我) ----
+        ex_docs = list(db.exchanges.find(
+            {"proposer_id": current_user.id}
+        ).sort("created_at", -1))
+
+        ex_target_ids = [ex["target_item_id"] for ex in ex_docs]
+        ex_items_map = {}
+        if ex_target_ids:
+            ex_items_map = {
+                doc["_id"]: doc
+                for doc in db.items.find({"_id": {"$in": ex_target_ids}})
+            }
+
+        for ex in ex_docs:
+            target_item = ex_items_map.get(ex.get("target_item_id"))
+            target_name = target_item.get("name") if target_item else "未知物品"
+
+            notifications.append({
+                "kind": "exchange",  # 類型：交換
+                "item_name": target_name,
+                "status": ex.get("status", "pending"),
+                "transaction_type": "exchange",
+                "proposer_id": str(ex.get("proposer_id")),        
+                "target_item_owner_id": ex.get("target_item_owner_id"), 
+                "created_at": ex.get("created_at"),
+            })
+
         # ===== B. 新增：交換請求列表 (來自 exchanges) =====
         ex_docs = list(db.exchanges.find(
             {"target_item_owner_id": current_user.id}
@@ -213,6 +326,7 @@ def index():
                            seller_map=seller_map,
                            interests=interests,
                            exchange_requests=exchange_requests,
+                           notifications=notifications,
                            search_query=search_query,
                            sort_order=sort_order,
                            page=page,
@@ -383,15 +497,63 @@ def edit_item(item_id):
 @login_required
 def delete_item(item_id):
     db = current_app.db
+
+    # 先抓 item
     item = Item.get_by_id(item_id, db)
-    
+
     # 安全檢查
     if not item or item.seller_id != current_user.id:
         flash('找不到該物品或您無權限刪除。', 'danger')
-    else:
+        return redirect(url_for('main.index', role='seller', tab='items'))
+
+    # ===== 新增：把相關交易 / 交換標成 cancelled =====
+    try:
+        item_oid = ObjectId(item_id)
+    except Exception:
+        # 理論上不會，但保險一下
         item.delete(db)
         flash('物品已刪除。', 'success')
-        
+        return redirect(url_for('main.index', role='seller', tab='items'))
+
+    # 1. 買賣 / 租借：transactions 裡這個 item 的未結案紀錄
+    db.transactions.update_many(
+        {
+            "item_id": item_oid,
+            "status": {"$in": ["pending", "contacted", "accepted"]}
+        },
+        {
+            "$set": {
+                "status": "cancelled",
+                "cancel_reason": "item_deleted",
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+
+    # 2. 交換：exchanges 裡 target 或 proposed 是這個 item 的未結案紀錄
+    db.exchanges.update_many(
+        {
+            "$or": [
+                {"target_item_id": item_oid},
+                {"proposed_item_ids": item_oid},  # list 裡包含這個 item
+            ],
+            "status": {"$in": ["pending", "accepted"]}
+        },
+        {
+            "$set": {
+                "status": "cancelled",
+                "cancel_reason": "item_deleted",
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+
+    
+
+    # 最後真的刪掉 item 本體（內部會處理圖片等）
+    item.delete(db)
+    flash('物品已刪除。', 'success')
+
     return redirect(url_for('main.index', role='seller', tab='items'))
 
 # ---------------------------------------------------
@@ -674,3 +836,75 @@ def update_exchange_status():
         return jsonify({"ok": False, "error": "Exchange not found or permission denied"}), 404
     
     return jsonify({"ok": True})
+
+# 批量刪除表達興趣 (買賣/租借)
+@bp.route('/delete-interests', methods=['POST'])
+@login_required
+def delete_interests():
+    data = request.get_json()
+    ids = data.get('ids', [])
+    
+    if not ids:
+        return jsonify({'ok': False, 'error': '沒有選擇要刪除的項目'}), 400
+    
+    try:
+        db = current_app.db
+        deleted_count = 0
+        
+        for interest_id in ids:
+            try:
+                interest_oid = ObjectId(interest_id)
+            except:
+                continue  # 跳過無效的 ID
+            
+            # 確認這個交易紀錄的物品擁有者是當前用戶
+            transaction = db.transactions.find_one({"_id": interest_oid})
+            if transaction and str(transaction.get("owner_id")) == current_user.id:
+                result = db.transactions.delete_one({"_id": interest_oid})
+                if result.deleted_count > 0:
+                    deleted_count += 1
+        
+        return jsonify({
+            'ok': True, 
+            'message': f'成功刪除 {deleted_count} 筆紀錄'
+        })
+        
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+# 批量刪除交換請求
+@bp.route('/delete-exchanges', methods=['POST'])
+@login_required
+def delete_exchanges():
+    data = request.get_json()
+    ids = data.get('ids', [])
+    
+    if not ids:
+        return jsonify({'ok': False, 'error': '沒有選擇要刪除的項目'}), 400
+    
+    try:
+        db = current_app.db
+        deleted_count = 0
+        
+        for exchange_id in ids:
+            try:
+                exchange_oid = ObjectId(exchange_id)
+            except:
+                continue  # 跳過無效的 ID
+            
+            # 確認這個交換請求的目標物品擁有者是當前用戶
+            exchange = db.exchanges.find_one({"_id": exchange_oid})
+            if exchange and exchange.get("target_item_owner_id") == current_user.id:
+                result = db.exchanges.delete_one({"_id": exchange_oid})
+                if result.deleted_count > 0:
+                    deleted_count += 1
+        
+        return jsonify({
+            'ok': True, 
+            'message': f'成功刪除 {deleted_count} 筆交換請求'
+        })
+        
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+    

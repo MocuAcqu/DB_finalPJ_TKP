@@ -1,0 +1,186 @@
+{# templates/tab_notifications.html #}
+{% if not current_user.is_authenticated %}
+
+  {# 未登入：顯示請先登入 / 註冊卡片 #}
+  {% include 'partials/_profile_login_required.html' %}
+
+{% else %}
+  <div class="profile-card notif-wrapper">
+    <h1 style="font-size: 1.6rem; margin-bottom: 0.5rem;">
+      通知中心
+    </h1>
+    <p style="color: #777; margin-bottom: 1rem;">
+      查看最新動態
+    </p>
+
+    <div class="notif-board">
+      <!-- 待處理 pending -->
+      <div class="notif-column">
+        <div class="notif-column-header">尚未回覆</div>
+
+        {% for n in notifications if n.status == 'pending' %}
+          <div class="notif-item">
+            <div class="notif-item-title">
+              {% if n.kind == 'transaction' %}
+                賣家回覆：{{ n.item_name }}
+              {% elif n.kind == 'exchange' %}
+                交換回覆：{{ n.item_name }}
+              {% endif %}
+            </div>
+
+            <div class="notif-item-body">
+              目前狀態：<strong>{{ n.status }}</strong>
+            </div>
+
+            <div class="notif-item-meta">
+              類型：
+              {% if n.transaction_type == 'sell' %}買賣
+              {% elif n.transaction_type == 'rent' %}租借
+              {% elif n.transaction_type == 'exchange' %}交換
+              {% else %}其它{% endif %}
+              ｜ 建立時間：{{ n.created_at }}
+            </div>
+          </div>
+        {% else %}
+          <p class="notif-empty">目前沒有尚未回覆通知</p>
+        {% endfor %}
+      </div>
+
+      <!-- 已接受 accepted -->
+      <div class="notif-column">
+        <div class="notif-column-header">已接受</div>
+
+        {% for n in notifications if n.status == 'accepted' %}
+          <div class="notif-item">
+            <div class="notif-item-title">
+              {% if n.kind == 'transaction' %}
+                商品：{{ n.item_name }}
+              {% elif n.kind == 'exchange' %}
+                商品：{{ n.item_name }}
+              {% endif %}
+            </div>
+
+            <div class="notif-item-body">
+              已被 <strong>接受</strong> 
+            </div>
+
+            <div class="notif-item-meta">
+              類型：
+              {% if n.transaction_type == 'sell' %}買賣
+              {% elif n.transaction_type == 'rent' %}租借
+              {% elif n.transaction_type == 'exchange' %}交換
+              {% else %}其它{% endif %}
+              ｜ 建立時間：{{ n.created_at }}
+            </div>
+          </div>
+        {% else %}
+          <p class="notif-empty">目前沒有已接受的通知</p>
+        {% endfor %}
+      </div>
+
+      <!-- 已完成 completed -->
+      <div class="notif-column">
+        <div class="notif-column-header">已完成</div>
+
+        {% for n in notifications if n.status == 'done' %}
+          <div class="notif-item">
+            <div class="notif-item-title">
+              {% if n.kind == 'transaction' %}
+                商品：{{ n.item_name }}
+              {% elif n.kind == 'exchange' %}
+                商品：{{ n.item_name }}
+              {% endif %}
+            </div>
+
+            <div class="notif-item-body">
+              這筆交易已標記為 <strong>完成</strong> ✔
+            </div>
+
+            <div class="notif-item-meta">
+              類型：
+              {% if n.transaction_type == 'sell' %}買賣
+              {% elif n.transaction_type == 'rent' %}租借
+              {% elif n.transaction_type == 'exchange' %}交換
+              {% else %}其它{% endif %}
+              ｜ 建立時間：{{ n.created_at }}
+            </div>
+          </div>
+        {% else %}
+          <p class="notif-empty">目前沒有已完成的通知</p>
+        {% endfor %}
+      </div>
+
+      <!-- 已拒絕 rejected -->
+      <div class="notif-column">
+        <div class="notif-column-header">已拒絕</div>
+
+        {% for n in notifications if n.status == 'rejected' %}
+          <div class="notif-item">
+            <div class="notif-item-title">
+              {% if n.kind == 'transaction' %}
+                商品：{{ n.item_name }}
+              {% elif n.kind == 'exchange' %}
+                商品：{{ n.item_name }}
+              {% endif %}
+            </div>
+
+            <div class="notif-item-body">
+              這筆請求已被 <strong>拒絕</strong>
+            </div>
+
+            <div class="notif-item-meta">
+              類型：
+              {% if n.transaction_type == 'sell' %}買賣
+              {% elif n.transaction_type == 'rent' %}租借
+              {% elif n.transaction_type == 'exchange' %}交換
+              {% else %}其它{% endif %}
+              ｜ 建立時間：{{ n.created_at }}
+            </div>
+          </div>
+        {% else %}
+          <p class="notif-empty">目前沒有已拒絕的通知</p>
+        {% endfor %}
+      </div>
+      <!-- 已取消 cancelled -->
+      <div class="notif-column">
+        <div class="notif-column-header">已取消</div>
+
+        {% for n in notifications
+              if n.status == 'cancelled'
+              and (
+                (n.kind == 'transaction' and n.interested_user_id == current_user.id)
+                or
+                (n.kind == 'exchange' and n.proposer_id == current_user.id)
+              )
+        %}
+          <div class="notif-item">
+            <div class="notif-item-title">
+              {% if n.kind == 'transaction' %}
+                商品：{{ n.item_name }}
+              {% elif n.kind == 'exchange' %}
+                商品：{{ n.item_name }}
+              {% endif %}
+            </div>
+
+            <div class="notif-item-body">
+              這筆請求已被 <strong>取消</strong>
+            </div>
+
+            <div class="notif-item-meta">
+              類型：
+              {% if n.transaction_type == 'sell' %}買賣
+              {% elif n.transaction_type == 'rent' %}租借
+              {% elif n.transaction_type == 'exchange' %}交換
+              {% else %}其它{% endif %}
+              ｜ 建立時間：{{ n.created_at }}
+            </div>
+          </div>
+        {% else %}
+          <p class="notif-empty">目前沒有已取消的通知</p>
+        {% endfor %}
+      </div>
+
+
+    </div>
+  </div>
+{% endif %}
