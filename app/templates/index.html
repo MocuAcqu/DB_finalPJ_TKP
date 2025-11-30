@@ -17,6 +17,9 @@
                 <a href="{{ url_for('main.index', role='user', tab='profile') }}" class="tab-item {% if active_tab == 'profile' %}active{% endif %}">
                     個人資料
                 </a>
+                <a href="{{ url_for('main.index', role='user', tab='notifications') }}" class="tab-item {% if active_tab == 'notifications' %}active{% endif %}">
+                    通知
+                </a>
             {% elif role == 'seller' %}
                 <a href="{{ url_for('main.index', role='seller', tab='items') }}" class="tab-item {% if active_tab == 'items' %}active{% endif %}">
                     我的物品
@@ -45,6 +48,9 @@
                 {% include 'user/tab_rent.html' %}
             {% elif active_tab == 'profile' %}
                 {% include 'user/tab_profile.html' %}
+            {% elif active_tab == 'notifications' %}
+                {% include 'user/tab_notifications.html' %}
+            
             {% endif %}
 
         {% elif role == 'seller' %}

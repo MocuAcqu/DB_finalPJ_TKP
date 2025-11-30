@@ -1,43 +1,54 @@
-<div class="profile-card"
-     style="max-width: 600px; margin: 2rem auto; padding: 2rem;
-            background: #fff; border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+{% if not current_user.is_authenticated %}
 
-    <div class="profile-info">
-        <h2>賣家基本資料</h2>
-        <p><strong>使用者名稱：</strong> {{ current_user.username }}</p>
-        <p><strong>Email：</strong> {{ current_user.email }}</p>
+  {# 未登入：顯示請先登入 / 註冊卡片 #}
+  {% include 'partials/_profile_login_required.html' %}
+
+{% else %}
+
+  {# 已登入：顯示原本的用戶基本資料表單 #}
+
+    <div class="profile-card"
+        style="max-width: 600px; margin: 2rem auto; padding: 2rem;
+                background: #fff; border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+
+        <div class="profile-info">
+            <h2>賣家基本資料</h2>
+            <p><strong>使用者名稱：</strong> {{ current_user.username }}</p>
+            <p><strong>Email：</strong> {{ current_user.email }}</p>
+        </div>
+
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+
+        <form action="{{ url_for('main.update_profile', role='seller') }}"
+            method="POST" class="profile-form">
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label for="line_id" style="display: block; font-weight: bold;">Line ID</label>
+                <input type="text" id="line_id" name="line_id"
+                    value="{{ current_user.line_id }}"
+                    style="width: 100%; padding: 8px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label for="phone" style="display: block; font-weight: bold;">聯絡電話</label>
+                <input type="tel" id="phone" name="phone"
+                    value="{{ current_user.phone }}"
+                    style="width: 100%; padding: 8px;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label for="facebook" style="display: block; font-weight: bold;">Facebook</label>
+                <input type="text" id="facebook" name="facebook"
+                    value="{{ current_user.facebook }}"
+                    style="width: 100%; padding: 8px;">
+            </div>
+
+            <button type="submit" class="btn-save"
+                    >
+                儲存變更
+            </button>
+        </form>
     </div>
 
-    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
-
-    <form action="{{ url_for('main.update_profile', role='seller') }}"
-          method="POST" class="profile-form">
-
-        <div class="form-group" style="margin-bottom: 15px;">
-            <label for="line_id" style="display: block; font-weight: bold;">Line ID</label>
-            <input type="text" id="line_id" name="line_id"
-                   value="{{ current_user.line_id }}"
-                   style="width: 100%; padding: 8px;">
-        </div>
-
-        <div class="form-group" style="margin-bottom: 15px;">
-            <label for="phone" style="display: block; font-weight: bold;">聯絡電話</label>
-            <input type="tel" id="phone" name="phone"
-                   value="{{ current_user.phone }}"
-                   style="width: 100%; padding: 8px;">
-        </div>
-
-        <div class="form-group" style="margin-bottom: 15px;">
-            <label for="facebook" style="display: block; font-weight: bold;">Facebook</label>
-            <input type="text" id="facebook" name="facebook"
-                   value="{{ current_user.facebook }}"
-                   style="width: 100%; padding: 8px;">
-        </div>
-
-        <button type="submit" class="btn-save"
-                >
-            儲存變更
-        </button>
-    </form>
-</div>
+{% endif %}

@@ -1137,4 +1137,207 @@ a {
 }
 .status-accepted { background-color: #28a745; } 
 .status-rejected { background-color: #dc3545; } 
+/* 刪除 */
+.edit-mode-btn {
+    background: #4a90e2;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background 0.3s;
+}
 
+.edit-mode-btn:hover {
+    background: #357abd;
+}
+
+.edit-mode-btn.active {
+    background: #e74c3c;
+}
+
+.bulk-actions {
+    display: none;
+    gap: 10px;
+    margin: 15px 0;
+    padding: 15px;
+    background: #2a2a2a;
+    border-radius: 8px;
+}
+
+.bulk-actions.show {
+    display: flex;
+}
+
+.bulk-actions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.3s;
+}
+
+.cancel-btn {
+    background: #666;
+    color: white;
+}
+
+.cancel-btn:hover {
+    background: #555;
+}
+
+.delete-btn {
+    background: #e74c3c;
+    color: white;
+}
+
+.delete-btn:hover {
+    background: #c0392b;
+}
+
+.delete-btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.checkbox-cell {
+    width: 40px;
+    text-align: center;
+}
+
+.row-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.hidden {
+    display: none;
+}
+
+/*notification*/
+/* 通知中心外框：沿用 profile-card，可以再加一點調整 */
+.notif-wrapper {
+    /* 如果 profile-card 已經有 max-width / padding 就不用再設 */
+}
+
+/* 四個區塊的容器：橫向排列 + 可水平捲動 */
+.notif-board {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+/* 捲動條稍微好看一點（可選） */
+.notif-board::-webkit-scrollbar {
+    height: 8px;
+}
+.notif-board::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 4px;
+}
+.notif-board::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+/* 每一個「狀態」的欄位 */
+.notif-column {
+    min-width: 230px;   /* 讓它有固定寬度，才會水平滑 */
+    max-width: 260px;
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 0.8rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    flex-shrink: 0;     /* 不要被壓縮，保持欄位寬度 */
+}
+
+/* 欄位標題 */
+.notif-column-header {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+/* 每一則通知的小卡片 */
+.notif-item {
+    background: #fff;
+    border-radius: 6px;
+    border: 1px solid #eee;
+    padding: 0.6rem 0.7rem;
+    margin-bottom: 0.6rem;
+    font-size: 0.9rem;
+}
+
+.notif-item-title {
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+.notif-item-body {
+    margin-bottom: 0.3rem;
+}
+
+.notif-item-meta {
+    font-size: 0.8rem;
+    color: #777;
+}
+
+/* 該狀態沒有任何通知時的文字 */
+.notif-empty {
+    font-size: 0.9rem;
+    color: #999;
+    margin: 0.5rem 0;
+}
+/* 通知頁的最外層白色卡片 */
+.notif-wrapper {
+    width: 90%;
+    max-width: 1100px;   /* 大螢幕最大寬 */
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0px 2px 12px rgba(0,0,0,0.12);
+    transition: max-width 0.3s ease;
+}
+
+/* 平板大小 (>=768px) */
+@media (max-width: 992px) {
+    .notif-wrapper {
+        max-width: 800px;
+    }
+}
+
+/* 手機大小 (<=768px) */
+@media (max-width: 768px) {
+    .notif-wrapper {
+        width: 95%;
+        padding: 1.2rem;
+        max-width: 100%;
+        border-radius: 10px;
+    }
+}
+
+/* 超小手機 <=480px */
+@media (max-width: 480px) {
+    .notif-wrapper {
+        padding: 1rem;
+    }
+}
+/* 管理回應表格：不可刪除的 checkbox 外觀 */
+.response-table input[type="checkbox"][disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* 也可以順便讓不可刪除的 row 顯得比較淡（選擇性） */
+.response-table tr[data-deleted="0"] td.checkbox-cell {
+  /* 只讓 checkbox 那格淡一點就好 */
+  opacity: 0.6;
+}
+
+/* hover 時顯示系統內建 tooltip，已經靠 title 屬性處理 */

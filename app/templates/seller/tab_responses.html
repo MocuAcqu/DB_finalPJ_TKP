@@ -1,157 +1,225 @@
-<div style="max-width: 850px; margin: 2rem auto;">
+{% if not current_user.is_authenticated %}
 
-    {# =================== A. 買賣 / 租借：表達興趣 =================== #}
-    <h3 style="margin: 1rem 0; color:#f5f5f5">買賣 / 租借 - 表達興趣列表</h3>
+  {# 未登入：顯示請先登入 / 註冊卡片 #}
+  {% include 'partials/_profile_login_required.html' %}
 
-    <!-- 類型 tab bar -->
-    <div class="tab-bar-container">
-        <div class="tab-bar responses-tab-bar">
-            <a class="tab-item active" data-type="all">
-                All
-            </a>
-            <a class="tab-item" data-type="sell">
-                買賣
-            </a>
-            <a class="tab-item" data-type="rent">
-                租借
-            </a>
+{% else %}
+    <div style="max-width: 850px; margin: 2rem auto;">
+
+        {# =================== A. 買賣 / 租借：表達興趣 =================== #}
+        <h3 style="margin: 1rem 0; color:#f5f5f5">買賣 / 租借 - 表達興趣列表
+            <button class="edit-mode-btn" id="editModeBtn1">編輯</button>
+        </h3>
+
+        <!-- 批量操作區 (放在 tab-bar 之前) -->
+        <div class="bulk-actions" id="bulkActions1">
+            <span id="selectedCount1" style="color: #888;">已選擇 0 項</span>
+            <button class="cancel-btn" id="cancelBtn1">取消</button>
+            <button class="delete-btn" id="deleteBtn1" disabled>刪除選取項目</button>
         </div>
-    </div>
-
-    <!-- 狀態篩選 -->
-    <div class="status-filter responses-status-filter"
-         style="display:flex; gap:12px; margin:15px 0;">
-        <button class="status-btn active" data-status="all">全部</button>
-        <button class="status-btn" data-status="pending">待回應</button>
-        <button class="status-btn" data-status="contacted">已聯絡</button>
-        <button class="status-btn" data-status="done">已完成</button>
-        <button class="status-btn" data-status="rejected">已拒絕</button>
-    </div>
-
-    {% if interests and interests|length > 0 %}
-        <table class="response-table">
-            <thead style="background:#f5f5f5;">
-                <tr>
-                    <th style="padding:10px; text-align:left;">物品</th>
-                    <th style="padding:10px; text-align:left;">買家</th>
-                    <th style="padding:10px; text-align:left;">類型</th>
-                    <th style="padding:10px; text-align:left;">狀態</th>
-                    <th style="padding:10px; text-align:left;">時間</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for r in interests %}
-                <tr class="interest-row" data-type="{{ r.type }}" data-status="{{ r.status }}" data-id="{{ r.id }}">
-                    <td style="padding:10px; color:#1d1d1d; font-size:0.9em;">{{ r.item.name if r.item else "(物品已刪除)" }}</td>
-                    <td class="buyer-cell" style="padding:10px; color:#888; font-size:0.9em;">{{ r.buyer.username if r.buyer else "(使用者已刪除)" }}</td>
-                    <td>
-                        {% if r.type == "sell" %}買賣{% elif r.type == "rent" %}租借{% else %}未知{% endif %}
-                    </td>
-                    <td class="status-cell" style="padding:10px; color:#888; font-size:0.9em;">
-                        {% if r.status in ['done', 'rejected'] %}
-                            <span class="status-{{ r.status }}">{{ '已完成' if r.status == 'done' else '已拒絕' }}</span>
-                        {% else %}
-                            <select class="status-dropdown">
-                                <option value="pending" {% if r.status == "pending" %}selected{% endif %}>待回應</option>
-                                <option value="contacted" {% if r.status == "contacted" %}selected{% endif %}>已聯絡</option>
-                                <option value="done" {% if r.status == "done" %}selected{% endif %}>已完成</option>
-                                <option value="rejected" {% if r.status == "rejected" %}selected{% endif %}>已拒絕</option>
-                            </select>
-                        {% endif %}
-                    </td>
-                    <td style="padding:10px; color:#888; font-size:0.9em;">{{ r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "-" }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <div class="no-data-placeholder">
-            目前還沒有任何買賣 / 租借的表達興趣。
+        <!-- 類型 tab bar -->
+        <div class="tab-bar-container">
+            <div class="tab-bar responses-tab-bar">
+                <a class="tab-item active" data-type="all">
+                    All
+                </a>
+                <a class="tab-item" data-type="sell">
+                    買賣
+                </a>
+                <a class="tab-item" data-type="rent">
+                    租借
+                </a>
+            </div>
         </div>
-    {% endif %}
 
-    {# =================== B. 交換請求列表 =================== #}
-    <h3 style="margin: 2rem 0 1rem; color:#f5f5f5">交換請求列表</h3>
+        <!-- 狀態篩選 -->
+        <div class="status-filter responses-status-filter"
+            style="display:flex; gap:12px; margin:15px 0;">
+            <button class="status-btn active" data-status="all">全部</button>
+            <button class="status-btn" data-status="pending">待回應</button>
+            <button class="status-btn" data-status="contacted">已聯絡</button>
+            <button class="status-btn" data-status="done">已完成</button>
+            <button class="status-btn" data-status="rejected">已拒絕</button>
+            <button class="status-btn" data-status="cancelled">已取消</button>
+        </div>
 
-    <div class="status-filter exchange-status-filter" style="display:flex; gap:12px; margin:15px 0;">
-        <button class="status-btn active" data-status="all">全部</button>
-        <button class="status-btn" data-status="pending">待回應</button>
-        <button class="status-btn" data-status="accepted">已接受</button>
-        <button class="status-btn" data-status="rejected">已拒絕</button>
-    </div>
-
-    {% if exchange_requests and exchange_requests|length > 0 %}
-        <table class="response-table">
-            <thead style="background:#f5f5f5;">
-                <tr>
-                    <th style="padding:10px; text-align:left;">你的物品</th>
-                    <th style="padding:10px; text-align:left;">提出者 / 提供的物品</th>
-                    <th style="padding:10px; text-align:left;">狀態</th>
-                    <th style="padding:10px; text-align:left;">時間</th>
-                    <th style="padding:10px; text-align:left;">留言</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ex in exchange_requests %}
-                <tr class="exchange-row" data-status="{{ ex.status }}">
-                    <td style="padding:10px;">
-                        {{ ex.target_item.name if ex.target_item else "(物品已刪除)" }}
-                    </td>
-                    <td style="padding:10px;">
-                        <div>
-                            {{ ex.proposer.username if ex.proposer else "(使用者已刪除)" }}
-                        </div>
-                        <div style="font-size:0.85em; color:#666; margin-top:4px;">
-                            提供物品：
-                            {% if ex.offered_items %}
-                                {% for oi in ex.offered_items %}
-                                    {% if oi %}
-                                        {{ oi.name }}{% if not loop.last %}、{% endif %}
-                                    {% else %}
-                                        (物品已刪除)
-                                    {% endif %}
-                                {% endfor %}
+        {% if interests and interests|length > 0 %}
+            <table class="response-table">
+                <thead style="background:#f5f5f5;">
+                    <tr>
+                        <!-- 在表格 thead 的第一個 th -->
+                        <th class="checkbox-cell hidden" id="checkboxHeader1">
+                            <input type="checkbox" id="selectAll1" class="row-checkbox">
+                        </th>                   
+                        <th style="padding:10px; text-align:left;">物品</th>
+                        <th style="padding:10px; text-align:left;">買家</th>
+                        <th style="padding:10px; text-align:left;">類型</th>
+                        <th style="padding:10px; text-align:left;">狀態</th>
+                        <th style="padding:10px; text-align:left;">時間</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in interests %}
+                    <tr class="interest-row"
+                        data-type="{{ r.type }}"
+                        data-status="{{ r.status }}"
+                        data-id="{{ r.id }}"
+                        data-deleted="{{ '1' if not r.item else '0' }}">
+                        <td class="checkbox-cell hidden checkbox-col1">
+                            <input type="checkbox"
+                                class="row-checkbox interest-checkbox"
+                                {% if r.item %}
+                                    disabled
+                                    title="物品尚存在，暫時不能刪除此紀錄"
+                                {% endif %}>
+                        </td>
+                        <td style="padding:10px; color:#1d1d1d; font-size:0.9em;">
+                            {{ r.item.name if r.item else "(物品已刪除)" }}
+                        </td>
+                        <td class="buyer-cell" style="padding:10px; color:#888; font-size:0.9em;">
+                            {{ r.buyer.username if r.buyer else "(使用者已刪除)" }}
+                        </td>
+                        <td>
+                            {% if r.type == "sell" %}買賣{% elif r.type == "rent" %}租借{% else %}未知{% endif %}
+                        </td>
+                        <td class="status-cell" style="padding:10px; color:#888; font-size:0.9em;">
+                            {% if r.status == 'cancelled' %}
+                                <span class="status-cancelled text-danger fw-bold">
+                                    已取消（物品已刪除）
+                                </span>
+                            {% elif r.status in ['done', 'rejected'] %}
+                                <span class="status-{{ r.status }}">{{ '已完成' if r.status == 'done' else '已拒絕' }}</span>
                             {% else %}
-                                (無資料)
+                                <select class="status-dropdown">
+                                    <option value="pending" {% if r.status == "pending" %}selected{% endif %}>待回應</option>
+                                    <option value="contacted" {% if r.status == "contacted" %}selected{% endif %}>已聯絡</option>
+                                    <option value="done" {% if r.status == "done" %}selected{% endif %}>已完成</option>
+                                    <option value="rejected" {% if r.status == "rejected" %}selected{% endif %}>已拒絕</option>
+                                </select>
                             {% endif %}
-                        </div>
-                    </td>
-                    <td class="status-cell" style="padding:10px;">
-                        {% if ex.status in ['accepted', 'rejected'] %}
-                            <!-- 如果狀態已是「已接受」或「已拒絕」，則顯示為靜態文字，不可更改 -->
-                            <span class="status-{{ ex.status }}">{{ '已接受' if ex.status == 'accepted' else '已拒絕' }}</span>
-                        {% else %}
-                            <!-- 否則，顯示下拉選單 -->
-                            <select class="exchange-status-dropdown" data-exchange-id="{{ ex.id }}">
-                                <option value="pending" {% if ex.status == "pending" %}selected{% endif %}>待回應</option>
-                                <option value="accepted" {% if ex.status == "accepted" %}selected{% endif %}>接受</option>
-                                <option value="rejected" {% if ex.status == "rejected" %}selected{% endif %}>拒絕</option>
-                            </select>
-                        {% endif %}
-                    </td>
-                    <td style="padding:10px; color:#888; font-size:0.9em;">
-                        {{ ex.created_at.strftime("%Y-%m-%d %H:%M") if ex.created_at else "-" }}
-                    </td>
-                    <td style="padding:10px;">
-                        {% if ex.target_item_id %}
-                        <button type="button"
-                                class="view-exchange-detail-btn"
-                                data-exchange-id="{{ ex.id }}"
-                                data-proposer-name="{{ ex.proposer.username if ex.proposer else '未知用戶' }}"
-                                data-offered-items="{{ ex.offered_items|tojson|forceescape }}"
-                                data-item-id="{{ ex.target_item_id }}"
-                                style="padding:6px 10px;">
-                            查看請求詳情
-                        </button>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <div class="no-data-placeholder">
-            目前還沒有任何交換請求。
+                        </td>
+                        <td style="padding:10px; color:#888; font-size:0.9em;">
+                            {{ r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "-" }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-data-placeholder">
+                目前還沒有任何買賣 / 租借的表達興趣。
+            </div>
+        {% endif %}
+
+        {# =================== B. 交換請求列表 =================== #}
+        <h3 style="margin: 2rem 0 1rem; color:#f5f5f5">交換請求列表
+            <button class="edit-mode-btn" id="editModeBtn2">編輯</button>
+        </h3>
+        <!-- 批量操作區 -->
+        <div class="bulk-actions" id="bulkActions2">
+            <span id="selectedCount2" style="color: #888;">已選擇 0 項</span>
+            <button class="cancel-btn" id="cancelBtn2">取消</button>
+            <button class="delete-btn" id="deleteBtn2" disabled>刪除選取項目</button>
         </div>
-    {% endif %}
-</div>
+
+        <div class="status-filter exchange-status-filter" style="display:flex; gap:12px; margin:15px 0;">
+            <button class="status-btn active" data-status="all">全部</button>
+            <button class="status-btn" data-status="pending">待回應</button>
+            <button class="status-btn" data-status="accepted">已接受</button>
+            <button class="status-btn" data-status="rejected">已拒絕</button>
+        </div>
+
+        {% if exchange_requests and exchange_requests|length > 0 %}
+            <table class="response-table">
+                <thead style="background:#f5f5f5;">
+                    <tr>
+                        <th class="checkbox-cell hidden" id="checkboxHeader2">
+                            <input type="checkbox" id="selectAll2" class="row-checkbox">
+                        </th>
+                        <th style="padding:10px; text-align:left;">你的物品</th>
+                        <th style="padding:10px; text-align:left;">提出者 / 提供的物品</th>
+                        <th style="padding:10px; text-align:left;">狀態</th>
+                        <th style="padding:10px; text-align:left;">時間</th>
+                        <th style="padding:10px; text-align:left;">留言</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ex in exchange_requests %}
+                    <tr class="exchange-row"
+                        data-status="{{ ex.status }}"
+                        data-id="{{ ex.id }}"
+                        data-deleted="{{ '1' if not ex.target_item else '0' }}">
+                        <td class="checkbox-cell hidden checkbox-col2">
+                            <input type="checkbox"
+                                class="row-checkbox exchange-checkbox"
+                                {% if ex.target_item %}
+                                    disabled
+                                    title="物品尚存在，暫時不能刪除此交換請求"
+                                {% endif %}>
+                        </td>
+                        <td style="padding:10px;">
+                            {{ ex.target_item.name if ex.target_item else "(物品已刪除)" }}
+                        </td>
+                        <td style="padding:10px;">
+                            <div>
+                                {{ ex.proposer.username if ex.proposer else "(使用者已刪除)" }}
+                            </div>
+                            <div style="font-size:0.85em; color:#666; margin-top:4px;">
+                                提供物品：
+                                {% if ex.offered_items %}
+                                    {% for oi in ex.offered_items %}
+                                        {% if oi %}
+                                            {{ oi.name }}{% if not loop.last %}、{% endif %}
+                                        {% else %}
+                                            (物品已刪除)
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    (無資料)
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="status-cell" style="padding:10px;">
+                            {% if ex.status == 'cancelled' %}
+                                <span class="status-cancelled text-danger fw-bold">
+                                    已取消（物品已刪除）
+                                </span>   
+                            {% elif ex.status in ['accepted', 'rejected'] %}
+                                <!-- 如果狀態已是「已接受」或「已拒絕」，則顯示為靜態文字，不可更改 -->
+                                <span class="status-{{ ex.status }}">{{ '已接受' if ex.status == 'accepted' else '已拒絕' }}</span>
+                            {% else %}
+                                <!-- 否則，顯示下拉選單 -->
+                                <select class="exchange-status-dropdown" data-exchange-id="{{ ex.id }}">
+                                    <option value="pending" {% if ex.status == "pending" %}selected{% endif %}>待回應</option>
+                                    <option value="accepted" {% if ex.status == "accepted" %}selected{% endif %}>接受</option>
+                                    <option value="rejected" {% if ex.status == "rejected" %}selected{% endif %}>拒絕</option>
+                                </select>
+                            {% endif %}
+                        </td>
+                        <td style="padding:10px; color:#888; font-size:0.9em;">
+                            {{ ex.created_at.strftime("%Y-%m-%d %H:%M") if ex.created_at else "-" }}
+                        </td>
+                        <td style="padding:10px;">
+                            {% if ex.target_item_id %}
+                            <button type="button"
+                                    class="view-exchange-detail-btn"
+                                    data-exchange-id="{{ ex.id }}"
+                                    data-proposer-name="{{ ex.proposer.username if ex.proposer else '未知用戶' }}"
+                                    data-offered-items="{{ ex.offered_items|tojson|forceescape }}"
+                                    data-item-id="{{ ex.target_item_id }}"
+                                    style="padding:6px 10px;">
+                                查看請求詳情
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-data-placeholder">
+                目前還沒有任何交換請求。
+            </div>
+        {% endif %}
+    </div>
+{% endif %}
