@@ -49,6 +49,7 @@ python app.py
 │   │   │   └── base.html       # 基礎模板 
 │   │   ├── partials/      
 │   │   │   ├── _header.html       # 頁面 Header
+│   │   │   ├── _profile_login_required      # 未登入提醒畫面
 │   │   │   └── _search_block.html # 搜尋欄位
 │   │   │
 │   │   ├── auth/
@@ -67,6 +68,7 @@ python app.py
 │   │   │   ├── tab_buy_sell.html      # 買賣列表
 │   │   │   ├── tab_exchange.html      # 交換列表
 │   │   │   ├── tab_rent.html          # 租借列表
+│   │   │   ├── tab_notifications      # 通知
 │   │   │   └── tab_profile.html       # 使用者的個人資料頁
 │   │   │
 │   │   └── index.html          # 主頁面
