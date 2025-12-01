@@ -7,16 +7,8 @@
     <div style="max-width: 850px; margin: 2rem auto;">
 
         {# =================== A. 買賣 / 租借：表達興趣 =================== #}
-        <h3 style="margin: 1rem 0; color:#f5f5f5">買賣 / 租借 - 表達興趣列表
-            <button class="edit-mode-btn" id="editModeBtn1">編輯</button>
-        </h3>
+        <h3 style="margin: 1rem 0; color:#f5f5f5">買賣 / 租借 - 表達興趣列表</h3>
 
-        <!-- 批量操作區 (放在 tab-bar 之前) -->
-        <div class="bulk-actions" id="bulkActions1">
-            <span id="selectedCount1" style="color: #888;">已選擇 0 項</span>
-            <button class="cancel-btn" id="cancelBtn1">取消</button>
-            <button class="delete-btn" id="deleteBtn1" disabled>刪除選取項目</button>
-        </div>
         <!-- 類型 tab bar -->
         <div class="tab-bar-container">
             <div class="tab-bar responses-tab-bar">
@@ -41,6 +33,14 @@
             <button class="status-btn" data-status="done">已完成</button>
             <button class="status-btn" data-status="rejected">已拒絕</button>
             <button class="status-btn" data-status="cancelled">已取消</button>
+            <button class="edit-mode-btn" id="editModeBtn1">移除已刪除物品</button>
+        </div>
+
+        <!-- 批量操作區 (放在 tab-bar 之前) -->
+        <div class="bulk-actions" id="bulkActions1">
+            <span id="selectedCount1" style="color: #888; margin-top: 0.7%; margin-right: 10px;margin-left: 5px;">已選擇 0 項</span>
+            <button class="cancel-btn" id="cancelBtn1">取消</button>
+            <button class="delete-btn" id="deleteBtn1" disabled>刪除選取項目</button>
         </div>
 
         {% if interests and interests|length > 0 %}
@@ -112,21 +112,21 @@
         {% endif %}
 
         {# =================== B. 交換請求列表 =================== #}
-        <h3 style="margin: 2rem 0 1rem; color:#f5f5f5">交換請求列表
-            <button class="edit-mode-btn" id="editModeBtn2">編輯</button>
-        </h3>
-        <!-- 批量操作區 -->
-        <div class="bulk-actions" id="bulkActions2">
-            <span id="selectedCount2" style="color: #888;">已選擇 0 項</span>
-            <button class="cancel-btn" id="cancelBtn2">取消</button>
-            <button class="delete-btn" id="deleteBtn2" disabled>刪除選取項目</button>
-        </div>
+        <h3 style="margin: 2rem 0 1rem; color:#f5f5f5">交換請求列表</h3>
 
         <div class="status-filter exchange-status-filter" style="display:flex; gap:12px; margin:15px 0;">
             <button class="status-btn active" data-status="all">全部</button>
             <button class="status-btn" data-status="pending">待回應</button>
             <button class="status-btn" data-status="accepted">已接受</button>
             <button class="status-btn" data-status="rejected">已拒絕</button>
+            <button class="edit-mode-btn" id="editModeBtn2">移除已刪除物品</button>
+        </div>
+
+        <!-- 批量操作區 -->
+        <div class="bulk-actions" id="bulkActions2">
+            <span id="selectedCount2" style="color: #888; margin-top: 0.7%; margin-right: 10px;margin-left: 5px;">已選擇 0 項</span>
+            <button class="cancel-btn" id="cancelBtn2">取消</button>
+            <button class="delete-btn" id="deleteBtn2" disabled>刪除選取項目</button>
         </div>
 
         {% if exchange_requests and exchange_requests|length > 0 %}

@@ -67,6 +67,7 @@ class Item:
         self.price = item_data.get('price')
         self.exchange_want = item_data.get('exchange_want')
         self.created_at = item_data.get('created_at', datetime.utcnow())
+        self.status = item_data.get('status', 'available')
 
     @staticmethod
     def create_item(data, db):

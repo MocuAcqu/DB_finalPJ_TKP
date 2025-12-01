@@ -782,7 +782,7 @@ class EditModeManager {
         this.isEditMode = false;
 
         if (this.editBtn) {
-            this.editBtn.textContent = "編輯";
+            this.editBtn.textContent = "移除已刪除的物品";
             this.editBtn.classList.remove("active");
         }
         if (this.bulkActions) {
