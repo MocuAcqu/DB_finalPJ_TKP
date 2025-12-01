@@ -103,7 +103,7 @@ def index():
         }
         t_type = type_map.get(active_tab)
         if t_type:
-            base_query = {"transaction_type": t_type}
+            base_query = {"transaction_type": t_type, "status": "available"}
             final_query = {**base_query, **filter_query}
             
             # [修改] 使用動態的 per_page (此時為 12)
