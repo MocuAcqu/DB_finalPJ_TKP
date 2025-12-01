@@ -77,9 +77,11 @@ def index():
 
     db = current_app.db
 
+    item_status = request.args.get('item_status', 'available')
+
     # 情況 A: 賣家看自己的物品
     if role == 'seller' and active_tab == 'items' and current_user.is_authenticated:
-        base_query = {"seller_id": current_user.id}
+        base_query = {"seller_id": current_user.id, "status": item_status}
         final_query = {**base_query, **filter_query}
         
         # [修改] 使用動態的 per_page (此時為 15)
@@ -330,7 +332,8 @@ def index():
                            search_query=search_query,
                            sort_order=sort_order,
                            page=page,
-                           total_pages=total_pages
+                           total_pages=total_pages,
+                           current_item_status=item_status
                            )
 
 # [新增] 處理個人資料更新的路由
@@ -400,7 +403,8 @@ def upload_item():
                     "tags": tags,
                     "transaction_type": transaction_type,
                     "price": int(price) if price else None,
-                    "exchange_want": exchange_want if transaction_type == 'exchange' else None
+                    "exchange_want": exchange_want if transaction_type == 'exchange' else None,
+                    "status": "available"
                 }
 
                 # 4. 呼叫 Model 建立商品
@@ -506,6 +510,11 @@ def delete_item(item_id):
         flash('找不到該物品或您無權限刪除。', 'danger')
         return redirect(url_for('main.index', role='seller', tab='items'))
 
+    db.items.update_one(
+        {"_id": ObjectId(item_id)},
+        {"$set": {"status": "cancelled"}}
+    )
+    
     # ===== 新增：把相關交易 / 交換標成 cancelled =====
     try:
         item_oid = ObjectId(item_id)
@@ -797,10 +806,24 @@ def update_interest_status():
     db = current_app.db
 
     try:
-        db.transactions.update_one(
-            {"_id": ObjectId(interest_id)},
-            {"$set": {"status": status}}
+        oid = ObjectId(interest_id)
+        transaction = db.transactions.find_one_and_update(
+            {"_id": oid},
+            {"$set": {"status": status}},
+            return_document=True 
         )
+
+        if not transaction:
+            return jsonify({"ok": False, "error": "Transaction not found"}), 404
+            
+        if status == 'done':
+            item_id = transaction.get('item_id')
+            if item_id:
+                db.items.update_one(
+                    {"_id": item_id},
+                    {"$set": {"status": "completed"}}
+                )
+
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -819,23 +842,31 @@ def update_exchange_status():
     
     try:
         oid = ObjectId(exchange_id)
-    except Exception:
-        return jsonify({"ok": False, "error": "Invalid exchange ID format"}), 400
+        # 【修改】更新 exchange 並獲取它
+        exchange = db.exchanges.find_one_and_update(
+            {"_id": oid, "target_item_owner_id": current_user.id},
+            {"$set": {"status": status}},
+            return_document=True
+        )
 
-    # 安全檢查：確保是這筆交換的擁有者 (target_item_owner) 才能更新狀態
-    result = db.exchanges.update_one(
-        {
-            "_id": oid,
-            "target_item_owner_id": current_user.id
-        },
-        {"$set": {"status": status}}
-    )
-
-    # 檢查是否有文件被成功更新
-    if result.matched_count == 0:
-        return jsonify({"ok": False, "error": "Exchange not found or permission denied"}), 404
-    
-    return jsonify({"ok": True})
+        if not exchange:
+            return jsonify({"ok": False, "error": "Exchange not found or permission denied"}), 404
+        
+        # 【新增】如果狀態是 'accepted' (代表交易完成)，更新雙方物品的狀態
+        if status == 'accepted':
+            target_item_id = exchange.get('target_item_id')
+            proposed_item_ids = exchange.get('proposed_item_ids', [])
+            
+            all_involved_item_ids = [target_item_id] + proposed_item_ids
+            
+            db.items.update_many(
+                {"_id": {"$in": all_involved_item_ids}},
+                {"$set": {"status": "completed"}}
+            )
+            
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 # 批量刪除表達興趣 (買賣/租借)
 @bp.route('/delete-interests', methods=['POST'])

@@ -1139,30 +1139,33 @@ a {
 .status-rejected { background-color: #dc3545; } 
 /* 刪除 */
 .edit-mode-btn {
-    background: #4a90e2;
-    color: white;
-    border: none;
-    padding: 8px 16px;
+    color: #e74c3c;
+    border: 1px solid #e74c3c;
+    padding: 5px 10px;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 0.8em;
     transition: background 0.3s;
+    margin-left: 5px;
+    font-weight: 500;
 }
 
 .edit-mode-btn:hover {
-    background: #357abd;
+    background: #e2dad9;
 }
 
 .edit-mode-btn.active {
-    background: #e74c3c;
+    background: #dbbd13;
+    color: #ffffff;
+    border: none;
 }
 
 .bulk-actions {
     display: none;
     gap: 10px;
-    margin: 15px 0;
-    padding: 15px;
-    background: #2a2a2a;
+    margin: 10px 0;
+    padding: 10px;
+    background: #3b3b3b;
     border-radius: 8px;
 }
 
@@ -1175,7 +1178,7 @@ a {
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 0.8em;
     transition: all 0.3s;
 }
 
@@ -1218,19 +1221,14 @@ a {
     display: none;
 }
 
-/*notification*/
-/* 通知中心外框：沿用 profile-card，可以再加一點調整 */
-.notif-wrapper {
-    /* 如果 profile-card 已經有 max-width / padding 就不用再設 */
-}
-
 /* 四個區塊的容器：橫向排列 + 可水平捲動 */
 .notif-board {
     display: flex;
     gap: 1rem;
     margin-top: 1rem;
-    overflow-x: auto;
+    overflow: auto;
     padding-bottom: 0.5rem;
+    max-height: 600px;
 }
 
 /* 捲動條稍微好看一點（可選） */
@@ -1296,7 +1294,7 @@ a {
 /* 通知頁的最外層白色卡片 */
 .notif-wrapper {
     width: 90%;
-    max-width: 1100px;   /* 大螢幕最大寬 */
+    max-width: 92%;   /* 大螢幕最大寬 */
     margin: 2rem auto;
     padding: 2rem;
     background: #fff;
@@ -1341,3 +1339,127 @@ a {
 }
 
 /* hover 時顯示系統內建 tooltip，已經靠 title 屬性處理 */
+
+/* 賣家我的物品頁面 */
+.item-status-sections .item-section {
+    margin-bottom: 3rem;
+}
+.item-status-sections .section-title {
+    color: #f5f5f5;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+.no-items-placeholder {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2rem;
+    color: rgba(255,255,255,0.5);
+}
+
+/* 物品卡片狀態疊加層 */
+.item-image {
+    position: relative; /* 為了定位疊加層 */
+}
+.item-status-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.item-card:hover .item-status-overlay {
+    opacity: 1;
+}
+.item-card-status-completed .item-image::after,
+.item-card-status-cancelled .item-image::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(255, 255, 255, 0.4); /* 讓圖片變暗 */
+}
+.item-card .btn-disabled {
+    width: 100%;
+    background-color: #6c757d;
+    cursor: not-allowed;
+    border: none;
+    color: white;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+/* 讓 .form-group 成為一個 Flex 容器 */
+.form-group {
+    display: flex; /* 啟用 Flexbox */
+    align-items: center; /* 【核心】讓子元素在交叉軸上 (垂直) 居中對齊 */
+    gap: 20px; /* 在標籤和選項組之間創建一些間距 */
+    margin-bottom: 1.5rem; /* 與下一個表單組的間距 */
+}
+
+/* 針對表單的主要標籤 (例如 "交易方式 *") */
+.form-group > label:first-child {
+    font-weight: bold;
+    color: #333;
+    flex-shrink: 0; /* 防止標籤文字在空間不足時被壓縮換行 */
+}
+
+/* 針對 radio 按鈕組的容器 */
+.radio-group {
+    display: flex; /* 讓內部的 radio 選項也水平排列 */
+    align-items: center; /* 垂直對齊內部的 radio 和文字 */
+    gap: 20px; /* 選項之間的間距 */
+}
+
+/* 針對每一個 radio 選項 (label 包含 input) */
+.radio-group label {
+    display: flex; /* 讓 radio 按鈕和它的文字可以對齊 */
+    align-items: center;
+    gap: 8px; /* radio 按鈕和文字之間的間距 */
+    cursor: pointer; /* 顯示手形游標，提示可點擊 */
+    font-weight: normal; /* 覆蓋 .form-group > label 的粗體 */
+    margin-right: 0; /* 移除你原有的行內樣式 margin-right */
+}
+
+/* (可選) 美化 radio 按鈕 */
+.radio-group input[type="radio"] {
+    /* 使用 accent-color 可以輕鬆改變 radio 按鈕選中時的顏色，且不失原生外觀 */
+    accent-color: var(--primary-purple); /* 使用你在 :root 中定義的紫色 */
+    width: 1.1em;
+    height: 1.1em;
+    cursor: pointer;
+}
+
+.pagination-link {
+    display: inline-block;
+    padding: 8px 14px;
+    margin: 0 4px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    text-decoration: none;
+    color: var(--dark-text, #555);
+    background-color: var(--surface, #fff);
+    transition: all 0.2s ease-in-out;
+}
+
+/* 非活動按鈕的滑鼠懸停效果 */
+.pagination-link:not(.active):hover {
+    background-color: var(--light-gray, #c7c7c7);
+    border-color: #c7c7c7;
+}
+
+/* 【核心】當前頁碼的活動樣式 */
+.pagination-link.active {
+    background-color: #6892b8;
+    color: rgb(238, 238, 238);
+    border-color: #6892b8;
+    cursor: default; /* 活動頁碼不可點擊 */
+}

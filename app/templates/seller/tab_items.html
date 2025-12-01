@@ -1,7 +1,19 @@
+<div class="tab-bar-container">
+    <div class="tab-bar item-status-tabs">
+        <a href="{{ url_for('main.index', role='seller', tab='items', item_status='available') }}"
+        class="tab-item {% if current_item_status == 'available' %}active{% endif %}">
+        可交易
+        </a>
+        <a href="{{ url_for('main.index', role='seller', tab='items', item_status='completed') }}"
+        class="tab-item {% if current_item_status == 'completed' %}active{% endif %}">
+        已完成
+        </a>
+    </div>
+</div>
+
 <div class="seller-items-header"
      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-    <a href="{{ url_for('main.upload_item') }}"
-       class="btn-upload">
+    <a href="{{ url_for('main.upload_item') }}" class="btn-upload">
         + 上架新商品
     </a>
 </div>
@@ -11,7 +23,7 @@
     {% if items %}
         {% for item in items %}
             <div class="item-card"
-                 style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden;
+                 style="border-radius: 8px; overflow: hidden;
                         background: #fff; display: flex; flex-direction: column;">
 
                 <div class="item-image"
@@ -20,6 +32,11 @@
                          alt="{{ item.name }}"
                          style="width: 100%; height: 100%; object-fit: cover;"
                          class="zoomable-image">
+                    {% if item.status != 'available' %}
+                        <div class="item-status-overlay">
+                            <span>{{ '已完成' if item.status == 'completed' else '已取消' }}</span>
+                        </div>
+                    {% endif %}
                 </div>
 
                 <div class="item-details" style="padding: 15px; flex-grow: 1;">
@@ -31,28 +48,32 @@
 
                 <div class="item-actions"
                      style="padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px;">
+                    {% if item.status == 'available' %}
+                        <a href="{{ url_for('main.edit_item', item_id=item.id) }}"
+                        style="flex: 1; text-align: center; background-color: #4e98d5;
+                                color: white; text-decoration: none; padding: 8px; border-radius: 4px;">
+                            編輯
+                        </a>
 
-                    <a href="{{ url_for('main.edit_item', item_id=item.id) }}"
-                       style="flex: 1; text-align: center; background-color: #4e98d5;
-                              color: white; text-decoration: none; padding: 8px; border-radius: 4px;">
-                        編輯
-                    </a>
-
-                    <form action="{{ url_for('main.delete_item', item_id=item.id) }}"
-                          method="POST"
-                          style="flex: 1;"
-                          onsubmit="return confirm('確定要刪除這個物品嗎？此動作無法復原。');">
-                        <button type="submit"
-                                style="width: 100%; background-color: #cf483f; color: white;
-                                       border: none; padding: 8px; border-radius: 4px;
-                                       cursor: pointer; font-size: 1rem;">
-                            刪除
-                        </button>
-                    </form>
+                        <form action="{{ url_for('main.delete_item', item_id=item.id) }}"
+                            method="POST"
+                            style="flex: 1;"
+                            onsubmit="return confirm('確定要刪除這個物品嗎？此動作無法復原。');">
+                            <button type="submit"
+                                    style="width: 100%; background-color: #cf483f; color: white;
+                                        border: none; padding: 8px; border-radius: 4px;
+                                        cursor: pointer; font-size: 1rem;">
+                                刪除
+                            </button>
+                        </form>
+                    {% else %}
+                        <button class="btn-disabled" disabled>{{ '交易已完成' if item.status == 'completed'}}</button>
+                    {% endif %}
                 </div>
             </div>
         {% endfor %}
     {% else %}
-        <p style="grid-column: 1/-1;">目前沒有上架的物品，快去新增吧！</p>
+        <p style="grid-column: 1/-1; color:#ddd; font-size: 1.2rem;">這個分類下沒有物品</p>
     {% endif %}
 </div>
+
