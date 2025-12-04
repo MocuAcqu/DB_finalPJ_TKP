@@ -88,7 +88,7 @@ python app.py
 
 # | CRUD Overview
 
-## 1. Items(Product Management)
+## 1. Items (Product Management)
 
 | Action | Route | Method | Description | Role |
 |---|---|---|---|---|
