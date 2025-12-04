@@ -85,3 +85,55 @@ python app.py
 ```
 # ERD
 <img src="https://github.com/MocuAcqu/DB_finalPJ_TKP/blob/main/readme_img/ERD1.png" width="500">
+
+# | CRUD Overview
+
+## 1.Items(Product Management)
+
+| Action | Route | Method | Description | Role |
+|---|---|---|---|---|
+| **Create** | `/items/upload` | POST | Create a new item and upload its image to GridFS. | Seller |
+| **Read** | `/` | GET | Search, filter, and paginate all available items. | User / Seller |
+| **Read** | `/user/my_items` | GET | View all items uploaded by the seller. | Seller |
+| **Read** | `/item/detail/<id>` | GET | View detailed item information. | User / Seller |
+| **Read (image)** | `/image/<image_id>` | GET | Retrieve item image from GridFS. | User / Seller |
+| **Update** | `/items/edit/<id>` | POST | Update item information and replace its image. | Seller |
+| **Delete** | `/items/delete/<id>` | POST | Delete an item and automatically cancel related transactions/exchanges. | Seller |
+
+
+## 2.Transactions (Buy / Rent Requests)
+
+| Action | Route | Method | Description | Role |
+|---|---|---|---|---|
+| **Create** | `/express_interest` | POST | Create a transaction record when a user expresses interest in an item (buy/rent). | User |
+| **Read** | `/` | GET | View incoming buy/rent requests for the seller's items (dashboard "responses" view). | Seller |
+| **Read** | `/` | GET | View the status of the user's own buy/rent requests (dashboard "notifications" view). | User |
+| **Update** | `/update_interest_status` | POST | Update the transaction status (e.g., contacted / done / cancelled). | Seller |
+| **Delete (batch)** | `/delete-interests` | POST | Batch delete selected transaction records from the seller's management view. | Seller |
+
+## Exchanges (Item-to-Item Trades)
+
+| Action | Route | Method | Description | Role |
+|---|---|---|---|---|
+| **Create** | `/exchange/create` | POST | Create an exchange proposal, possibly offering multiple items in return for a target item. | User |
+| **Read** | `/` | GET | View exchange proposals received for the seller's items (dashboard "responses" view). | Seller |
+| **Read** | `/` | GET | View exchange proposals created by the user (dashboard "notifications" view). | User |
+| **Read (messages)** | `/exchange/<id>/messages` | GET | Retrieve the private message history for a specific exchange. | User / Seller |
+| **Update (message)** | `/exchange/<id>/add_message` | POST | Add a new chat message inside an exchange. | User / Seller |
+| **Update (status)** | `/update_exchange_status` | POST | Update the status of an exchange (e.g., accepted / rejected / cancelled). | Seller |
+| **Delete (batch)** | `/delete-exchanges` | POST | Batch delete selected exchange records from the seller's management view. | Seller |
+
+## Comments (Public Item Comments in "Exchange" Function)
+
+| Action | Route | Method | Description | Role |
+|---|---|---|---|---|
+| **Create** | `/item/<id>/comments` | POST | Add a public comment under a specific item. | User |
+| **Read** | `/item/<id>/comments` | GET | Retrieve the list of public comments for a specific item. | User / Seller |
+
+## User Profile
+
+| Action | Route | Method | Description | Role |
+|---|---|---|---|---|
+| **Update** | `/profile/update` | POST | Update user contact information (e.g., Email, LINE ID, Facebook). | User |
+
+
