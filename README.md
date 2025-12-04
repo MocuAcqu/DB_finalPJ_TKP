@@ -116,8 +116,8 @@ python app.py
 | Action | Route | Method | Description | Role |
 |---|---|---|---|---|
 | **Create** | `/exchange/create` | POST | Create an exchange proposal, possibly offering multiple items in return for a target item. | User |
-| **Read** | `/` | GET | View exchange proposals received for the seller's items (dashboard "responses" view). | Seller |
-| **Read** | `/` | GET | View exchange proposals created by the user (dashboard "notifications" view). | User |
+| **Read** | `/` | GET | View exchange proposals received for the seller's items ("responses" view). | Seller |
+| **Read** | `/` | GET | View exchange proposals created by the user ("notifications" view). | User |
 | **Read (messages)** | `/exchange/<id>/messages` | GET | Retrieve the private message history for a specific exchange. | User / Seller |
 | **Update (message)** | `/exchange/<id>/add_message` | POST | Add a new chat message inside an exchange. | User / Seller |
 | **Update (status)** | `/update_exchange_status` | POST | Update the status of an exchange (e.g., accepted / rejected / cancelled). | Seller |
