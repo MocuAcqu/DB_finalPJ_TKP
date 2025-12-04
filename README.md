@@ -88,7 +88,7 @@ python app.py
 
 # | CRUD Overview
 
-## 1.Items(Product Management)
+## 1. Items(Product Management)
 
 | Action | Route | Method | Description | Role |
 |---|---|---|---|---|
@@ -101,7 +101,7 @@ python app.py
 | **Delete** | `/items/delete/<id>` | POST | Delete an item and automatically cancel related transactions/exchanges. | Seller |
 
 
-## 2.Transactions (Buy / Rent Requests)
+## 2. Transactions (Buy / Rent Requests)
 
 | Action | Route | Method | Description | Role |
 |---|---|---|---|---|
@@ -111,7 +111,7 @@ python app.py
 | **Update** | `/update_interest_status` | POST | Update the transaction status (e.g., contacted / done / cancelled). | Seller |
 | **Delete (batch)** | `/delete-interests` | POST | Batch delete selected transaction records from the seller's management view. | Seller |
 
-## Exchanges (Item-to-Item Trades)
+## 3. Exchanges (Item-to-Item Trades)
 
 | Action | Route | Method | Description | Role |
 |---|---|---|---|---|
@@ -123,14 +123,14 @@ python app.py
 | **Update (status)** | `/update_exchange_status` | POST | Update the status of an exchange (e.g., accepted / rejected / cancelled). | Seller |
 | **Delete (batch)** | `/delete-exchanges` | POST | Batch delete selected exchange records from the seller's management view. | Seller |
 
-## Comments (Public Item Comments in "Exchange" Function)
+## 4. Comments (Public Item Comments in "Exchange" Function)
 
 | Action | Route | Method | Description | Role |
 |---|---|---|---|---|
 | **Create** | `/item/<id>/comments` | POST | Add a public comment under a specific item. | User |
 | **Read** | `/item/<id>/comments` | GET | Retrieve the list of public comments for a specific item. | User / Seller |
 
-## User Profile
+## 5. User Profile
 
 | Action | Route | Method | Description | Role |
 |---|---|---|---|---|
