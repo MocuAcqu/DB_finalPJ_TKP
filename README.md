@@ -84,7 +84,7 @@ python app.py
 └── requirements.txt       
 ```
 # ERD
-<img src="https://github.com/MocuAcqu/DB_finalPJ_TKP/blob/main/readme_img/ERD1.png" width="500">
+<img src="https://github.com/MocuAcqu/DB_finalPJ_TKP/blob/main/readme_img/TKP.png" width="500">
 
 # | CRUD Overview
 
